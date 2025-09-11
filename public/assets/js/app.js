@@ -70,32 +70,63 @@ $(document).ready(function() {
     updateHiddenColumnsDisplay();
 
     $('.filter-input').on('keypress', function(e){ if (e.key==='Enter'){ e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
+    
+    // --- [INIZIO BLOCCO CORRETTO] RICERCA GLOBALE CON EVIDENZIAZIONE ---
+    function highlightHTML(html, regex){
+        if (!html) return '';
+        return html.split(/(<[^>]*>)/g).map(part => {
+            return part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>');
+        }).join('');
+    }
 
-    function highlightHTML(html, regex){ return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join(''); }
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim();
         $('#clearSearch').toggle(query.length > 0);
-        const regex = query.length > 0 ? new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+        
+        const regex = query.length > 1 ? new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+
         $('#dataTable tbody tr').each(function() {
             const $row = $(this);
-            const text = $row.text();
-            const match = !regex || regex.test(text);
+            
+            $row.find('td').each(function() {
+                const $cell = $(this);
+                if ($cell.data('origHtml')) {
+                    $cell.html($cell.data('origHtml'));
+                }
+            });
+
+            if (!regex) {
+                $row.show();
+                return;
+            }
+
+            const rowText = $row.text();
+            const match = regex.test(rowText);
             $row.toggle(match);
-            if (match && regex) {
+
+            if (match) {
                 $row.find('td').each(function() {
                     const $cell = $(this);
-                    if (!$cell.data('origHtml')) $cell.data('origHtml', $cell.html());
+                    if (!$cell.data('origHtml')) {
+                        $cell.data('origHtml', $cell.html());
+                    }
                     $cell.html(highlightHTML($cell.data('origHtml'), regex));
-                });
-            } else {
-                 $row.find('td').each(function() {
-                    const $cell = $(this);
-                    if ($cell.data('origHtml')) $cell.html($cell.data('origHtml'));
                 });
             }
         });
     });
-    $('#clearSearch').on('click', () => { $('#globalSearch').val('').trigger('input').focus(); });
+
+    $('#clearSearch').on('click', () => {
+        $('#globalSearch').val('').trigger('input').focus();
+        $('#dataTable tbody tr').find('td').each(function() {
+            const $cell = $(this);
+            if ($cell.data('origHtml')) {
+                $cell.html($cell.data('origHtml'));
+                $cell.removeData('origHtml');
+            }
+        });
+    });
+    // --- [FINE BLOCCO CORRETTO] ---
 
     let currentWidthMode = 0;
     $('#toggle-col-width').on('click', function() {
@@ -106,10 +137,70 @@ $(document).ready(function() {
         else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
     });
 
-    // --- GESTIONE MODALI (da completare con la logica di visualizzazione/salvataggio se necessario) ---
+    // --- GESTIONE MODALI ---
+    let editOriginal = { values: {}, idf24: null };
     $('#dataTable tbody').on('click', '.details-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale dettagli */ });
     $('#dataTable tbody').on('click', '.edit-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale modifica */ });
+    
+    // Gestori per pulsanti modale modifica
+    $('#editSaveContinueBtn').on('click', () => saveEdits(true));
+    $('#editSaveExitBtn').on('click', () => saveEdits(false));
 
+    function saveEdits(keepOpen) {
+        const updates = {};
+        $('#editForm .edit-field').each(function(){
+            const name = $(this).data('name');
+            const original = editOriginal.values[name];
+            const $input = $(this).find('.edit-input');
+            if ($input.is('[readonly]')) return;
+
+            const val = $input.val();
+            let originalString;
+            
+            if (original === null || typeof original === 'undefined') {
+                originalString = null;
+            } else if (typeof original === 'boolean') {
+                originalString = original ? 'true' : 'false';
+            } else {
+                originalString = String(original);
+            }
+
+            if (val !== originalString) {
+                 updates[name] = val;
+            }
+        });
+
+        if (Object.keys(updates).length === 0) {
+            if (!keepOpen) closeModal('editModal');
+            return;
+        }
+        
+        $.ajax({
+            url: APP_URL + '/index.php',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'save_concessione_edit',
+                original_idf24: editOriginal.idf24,
+                updates: JSON.stringify(updates)
+            },
+            success: function(r) {
+                if (r.success) {
+                    const newIdf24 = updates['idf24'] || editOriginal.idf24;
+                    if (keepOpen) {
+                        openEditModal(newIdf24);
+                    } else {
+                        location.reload(); 
+                    }
+                } else {
+                    $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
+                }
+            },
+            error: function(xhr, status, error) {
+                 $('#editAlert').text('Errore di comunicazione con il server: ' + error).show();
+            }
+        });
+    }
 
     // --- LOGICA PAGINA IMPORTAZIONE ---
     const uploaderCard = document.getElementById('uploaderCard');
@@ -120,13 +211,23 @@ $(document).ready(function() {
               fileInfo = document.getElementById('fileInfo'),
               fileNameDisplay = document.getElementById('fileName'),
               uploadButton = document.getElementById('uploadButton');
-
+        
+        // --- [INIZIO BLOCCO CORRETTO] GESTIONE UPLOADER ---
         const setupUploader = () => {
             const browseLink = dropZone.querySelector('.browse-link');
+            
             dropZone.onclick = (e) => {
-                if (e.target === browseLink) e.preventDefault();
+                if (e.target !== browseLink) {
+                    zipFileInput.click();
+                }
+            };
+            
+            browseLink.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 zipFileInput.click();
             };
+
             dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
             dropZone.ondragleave = () => dropZone.classList.remove('dragover');
             dropZone.ondrop = (e) => {
@@ -141,6 +242,7 @@ $(document).ready(function() {
             };
             zipFileInput.onchange = handleFileSelection;
         };
+        // --- [FINE BLOCCO CORRETTO] ---
 
         function handleFileSelection() {
             if (zipFileInput.files.length > 0) {
