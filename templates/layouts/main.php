@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
     
     <script>
         // Applica il tema prima del rendering per evitare flash
@@ -61,6 +61,6 @@
         const FIELD_HELP = <?= json_encode($FIELD_HELP ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         const hiddenColumns = <?= json_encode($hidden_columns ?? [], JSON_UNESCAPED_UNICODE) ?>;
     </script>
-    <script src="assets/js/app.js"></script>
+    <script src="<?= APP_URL ?>/assets/js/app.js"></script>
 </body>
 </html>
