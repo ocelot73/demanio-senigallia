@@ -8,12 +8,11 @@
         <?php endif; ?>
     </div>
     <div class="btn-group">
+        <?php // ?>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn" title="Ripristina vista iniziale"><i class="fas fa-home"></i> Ripristina</a>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&toggle_view=1" class="btn" title="<?= ($data['full_view'] ?? false) ? 'Vista parziale' : 'Vista completa' ?>"><i class="fas fa-table"></i> <?= ($data['full_view'] ?? false) ? 'Parziale' : 'Completa' ?></a>
         <?php if (!empty($hidden_columns)): ?>
             <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&show_all=1" class="btn" title="Mostra tutte le colonne"><i class="fas fa-eye"></i> Mostra Colonne</a>
-        <?php else: ?>
-            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&hide_all=1" class="btn" title="Nascondi tutte le colonne"><i class="fas fa-eye-slash"></i> Nascondi Colonne</a>
         <?php endif; ?>
         <button id="toggle-col-width" class="btn" title="Cambia larghezza colonne"><i class="fas fa-text-width"></i> Largh.colonne</button>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_order=1" class="btn" title="Ripristina ordinamento colonne"><i class="fas fa-undo"></i> Ordine</a>
@@ -38,6 +37,7 @@
                     <div class="header-content">
                         <span class="col-title"><?= htmlspecialchars($col) ?></span>
                         <div class="header-title-actions">
+                             <?php // ?>
                             <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= urlencode($col) ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
                             <?= $order_column == $col ? ($order_direction == 'ASC' ? '↑' : '↓') : '↕' ?>
                           </a>
