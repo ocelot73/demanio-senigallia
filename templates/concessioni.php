@@ -8,20 +8,21 @@
         <?php endif; ?>
     </div>
     <div class="btn-group">
-        <?php // ?>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn" title="Ripristina vista iniziale"><i class="fas fa-home"></i> Ripristina</a>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&toggle_view=1" class="btn" title="<?= ($data['full_view'] ?? false) ? 'Vista parziale' : 'Vista completa' ?>"><i class="fas fa-table"></i> <?= ($data['full_view'] ?? false) ? 'Parziale' : 'Completa' ?></a>
-        <?php if (!empty($hidden_columns)): ?>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&toggle_view=1" class="btn" title="<?= ($data['full_view'] ?? false) ? 'Vista parziale' : 'Vista completa' ?>"><i class="fas fa-table"></i> <?= ($data['full_view'] ?? ($currentPageKey === 'concessioni')) ? 'Parziale' : 'Completa' ?></a>
+        <?php if (!empty($data['hidden_columns'] ?? [])): ?>
             <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&show_all=1" class="btn" title="Mostra tutte le colonne"><i class="fas fa-eye"></i> Mostra Colonne</a>
+        <?php else: ?>
+            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&hide_all=1" class="btn" title="Nascondi tutte le colonne"><i class="fas fa-eye-slash"></i> Nascondi Colonne</a>
         <?php endif; ?>
         <button id="toggle-col-width" class="btn" title="Cambia larghezza colonne"><i class="fas fa-text-width"></i> Largh.colonne</button>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_order=1" class="btn" title="Ripristina ordinamento colonne"><i class="fas fa-undo"></i> Ordine</a>
         <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn" title="Esporta dati in formato CSV"><i class="fas fa-file-csv"></i> Esporta</a>
-        <?php if (!empty($filters)): ?><a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&clear_filters=1" class="btn btn-primary" title="Azzera tutti i filtri di colonna"><i class="fas fa-broom"></i> Azzera filtri</a><?php endif; ?>
+        <?php if (!empty($data['filters'] ?? [])): ?><a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&clear_filters=1" class="btn btn-primary" title="Azzera tutti i filtri di colonna"><i class="fas fa-broom"></i> Azzera filtri</a><?php endif; ?>
     </div>
 </div>
 
-<div class="hidden-columns-bar" id="hiddenColumnsBar" style="<?= empty($hidden_columns) ? 'display:none' : '' ?>">
+<div class="hidden-columns-bar" id="hiddenColumnsBar" style="<?= empty($data['hidden_columns'] ?? []) ? 'display:none' : '' ?>">
     <strong>Colonne nascoste:</strong> <span id="hiddenColumnsList"></span>
 </div>
 
@@ -30,27 +31,26 @@
         <thead>
             <tr>
                 <th style="width: 80px;">Azioni</th>
-                <?php foreach ($columns as $col):
-                    if (in_array($col, $hidden_columns)) continue;
+                <?php foreach ($data['columns'] as $col):
+                    if (in_array($col, ($data['hidden_columns'] ?? []))) continue;
                 ?>
                 <th data-column="<?= htmlspecialchars($col) ?>">
                     <div class="header-content">
                         <span class="col-title"><?= htmlspecialchars($col) ?></span>
                         <div class="header-title-actions">
-                             <?php // ?>
-                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= urlencode($col) ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
-                            <?= $order_column == $col ? ($order_direction == 'ASC' ? '↑' : '↓') : '↕' ?>
+                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= urlencode($col) ?>&dir=<?= ($data['order_column'] ?? '') == $col && ($data['order_direction'] ?? '') == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= ($data['order_column'] ?? '') == $col ? 'active' : '' ?>">
+                            <?= ($data['order_column'] ?? '') == $col ? (($data['order_direction'] ?? '') == 'ASC' ? '↑' : '↓') : '↕' ?>
                           </a>
                           <button class="toggle-btn" data-column="<?= htmlspecialchars($col) ?>">✕</button>
                         </div>
                     </div>
-                    <input type="text" class="filter-input" data-column="<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars($filters[$col] ?? '') ?>" placeholder="Filtra...">
+                    <input type="text" class="filter-input" data-column="<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars(($data['filters'] ?? [])[$col] ?? '') ?>" placeholder="Filtra...">
                 </th>
                 <?php endforeach; ?>
             </tr>
         </thead>
         <tbody>
-          <?php if (!empty($records)): foreach ($records as $row): ?>
+          <?php if (!empty($data['records'])): foreach ($data['records'] as $row): ?>
           <tr data-idf24="<?= htmlspecialchars($row['idf24'] ?? '') ?>">
               <td style="text-align:center;">
                   <span class="row-actions">
@@ -58,12 +58,12 @@
                     <a href="#" class="edit-btn" title="Modifica"><i class="fas fa-pencil-alt"></i></a>
                   </span>
               </td>
-              <?php foreach ($columns as $col): if (in_array($col, $hidden_columns)) continue; ?>
+              <?php foreach ($data['columns'] as $col): if (in_array($col, ($data['hidden_columns'] ?? []))) continue; ?>
                   <td><?= htmlspecialchars($row[$col] ?? '') ?></td>
               <?php endforeach; ?>
           </tr>
           <?php endforeach; else: ?>
-          <tr><td colspan="<?= count($columns) + 1 ?>">Nessun record trovato.</td></tr>
+          <tr><td colspan="<?= count($data['columns'] ?? []) + 1 ?>">Nessun record trovato.</td></tr>
           <?php endif; ?>
         </tbody>
     </table>
