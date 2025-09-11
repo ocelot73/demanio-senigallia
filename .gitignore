@@ -1,0 +1,9 @@
+# Ignora le credenziali di configurazione
+config/config.php
+
+# Ignora le dipendenze di Composer (se verranno usate in futuro)
+/vendor
+
+# Ignora i file di sistema
+.DS_Store
+Thumbs.db
