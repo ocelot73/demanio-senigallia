@@ -32,7 +32,7 @@
             <button class="btn" type="button" id="editSaveContinueBtn"><i class="fas fa-save"></i> Salva e continua</button>
             <button class="btn btn-primary" type="button" id="editSaveExitBtn"><i class="fas fa-check"></i> Salva ed esci</button>
         </div>
-        </div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="eventDetailsModal">
