@@ -17,7 +17,8 @@
                     if (in_array($key, $group_config['pages'])) {
                         $is_in_group = true;
                         if (!in_array($group_name, $rendered_groups)) {
-                            $is_group_active = !empty(array_intersect(array_keys($PAGES), $group_config['pages']));
+                            // Controlla se una delle pagine del gruppo è quella attiva
+                            $is_group_active = count(array_intersect([$currentPageKey], $group_config['pages'])) > 0;
                             ?>
                             <li class="has-submenu <?= $is_group_active ? 'open' : '' ?>">
                                 <a href="#" class="submenu-toggle">
@@ -29,7 +30,7 @@
                                     <?php foreach($group_config['pages'] as $page_key):
                                         $sub_config = $PAGES[$page_key]; ?>
                                     <li>
-                                        <a href="index.php?page=<?= $page_key ?>" class="<?= $page_key === $currentPageKey ? 'active' : '' ?>" title="<?= htmlspecialchars($sub_config['title']) ?>">
+                                        <a href="<?= APP_URL ?>/index.php?page=<?= $page_key ?>" class="<?= $page_key === $currentPageKey ? 'active' : '' ?>" title="<?= htmlspecialchars($sub_config['title']) ?>">
                                             <i class="<?= htmlspecialchars($sub_config['icon']) ?>"></i>
                                             <span><?= htmlspecialchars($sub_config['label']) ?></span>
                                         </a>
@@ -44,7 +45,7 @@
                 }
                 if (!$is_in_group): ?>
                 <li>
-                    <a href="<?= isset($config['url']) ? htmlspecialchars($config['url']) : 'index.php?page=' . $key ?>"
+                    <a href="<?= isset($config['url']) ? htmlspecialchars($config['url']) : APP_URL . '/index.php?page=' . $key ?>"
                        class="<?= $key === $currentPageKey ? 'active' : '' ?>"
                        title="<?= htmlspecialchars($config['title']) ?>"
                        <?= isset($config['url']) ? 'target="_blank" rel="noopener noreferrer"' : '' ?>>
@@ -64,6 +65,6 @@
                 <span class="link-text">Tema Scuro</span>
             </button>
         </div>
-        <a href="index.php?logout=1"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
+        <a href="<?= APP_URL ?>/index.php?logout=1"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
     </div>
 </nav>
