@@ -1,7 +1,6 @@
 <?php // /templates/concessioni.php ?>
 <div class="controls-bar">
     <div class="btn-group">
-        <?php // ?>
         <?php if ($currentPageKey === 'concessioni'): ?>
             <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_null" class="btn" title="Verificati ma non spediti"><i class="fas fa-check-circle" style="color:var(--color-warning);"></i> Verificati non spediti</a>
             <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_not_null" class="btn" title="Verificati e spediti"><i class="fas fa-check-double" style="color:var(--color-success);"></i> Verificati e spediti</a>
@@ -9,9 +8,17 @@
         <?php endif; ?>
     </div>
     <div class="btn-group">
-        <?php // ?>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn"><i class="fas fa-home"></i> Ripristina Vista</a>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn"><i class="fas fa-file-csv"></i> Esporta</a>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn" title="Ripristina vista iniziale"><i class="fas fa-home"></i> Ripristina</a>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&toggle_view=1" class="btn" title="<?= ($data['full_view'] ?? false) ? 'Vista parziale' : 'Vista completa' ?>"><i class="fas fa-table"></i> <?= ($data['full_view'] ?? false) ? 'Parziale' : 'Completa' ?></a>
+        <?php if (!empty($hidden_columns)): ?>
+            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&show_all=1" class="btn" title="Mostra tutte le colonne"><i class="fas fa-eye"></i> Mostra Colonne</a>
+        <?php else: ?>
+            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&hide_all=1" class="btn" title="Nascondi tutte le colonne"><i class="fas fa-eye-slash"></i> Nascondi Colonne</a>
+        <?php endif; ?>
+        <button id="toggle-col-width" class="btn" title="Cambia larghezza colonne"><i class="fas fa-text-width"></i> Largh.colonne</button>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_order=1" class="btn" title="Ripristina ordinamento colonne"><i class="fas fa-undo"></i> Ordine</a>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn" title="Esporta dati in formato CSV"><i class="fas fa-file-csv"></i> Esporta</a>
+        <?php if (!empty($filters)): ?><a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&clear_filters=1" class="btn btn-primary" title="Azzera tutti i filtri di colonna"><i class="fas fa-broom"></i> Azzera filtri</a><?php endif; ?>
     </div>
 </div>
 
@@ -31,8 +38,7 @@
                     <div class="header-content">
                         <span class="col-title"><?= htmlspecialchars($col) ?></span>
                         <div class="header-title-actions">
-                            <?php // ?>
-                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= $col ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
+                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= urlencode($col) ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
                             <?= $order_column == $col ? ($order_direction == 'ASC' ? '↑' : '↓') : '↕' ?>
                           </a>
                           <button class="toggle-btn" data-column="<?= htmlspecialchars($col) ?>">✕</button>
@@ -48,7 +54,7 @@
           <tr data-idf24="<?= htmlspecialchars($row['idf24'] ?? '') ?>">
               <td style="text-align:center;">
                   <span class="row-actions">
-                      <a href="#" class="details-btn" title="Dettagli SID"><i class="fas fa-search"></i></a>
+                    <a href="#" class="details-btn" title="Dettagli SID"><i class="fas fa-search"></i></a>
                     <a href="#" class="edit-btn" title="Modifica"><i class="fas fa-pencil-alt"></i></a>
                   </span>
               </td>
