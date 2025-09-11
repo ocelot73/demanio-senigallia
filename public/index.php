@@ -1,44 +1,69 @@
-<?php // public/index.php
+<?php
+// public/index.php
+// Front Controller
+
+ini_set('display_errors', 1); // Rimuovere in produzione
+error_reporting(E_ALL);
+
 session_start();
 
-// Carica il core dell'applicazione
+// 1. Caricamento Iniziale
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/pages.php';
 require_once __DIR__ . '/../src/lib/database.php';
 require_once __DIR__ . '/../src/lib/template.php';
+require_once __DIR__ . '/../src/lib/request_handler.php';
 
-// Gestione autenticazione (potrebbe essere una funzione in una libreria)
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    // Logica di rendering per la pagina di login
+// 2. Gestione Richieste AJAX
+// Se la richiesta è AJAX, viene gestita e lo script termina.
+handle_ajax_request($FIELD_HELP);
+
+// 3. Gestione Login e Logout
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: index.php');
     exit;
 }
 
-// Routing semplice
-$currentPageKey = $_GET['page'] ?? 'concessioni';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    if (($_POST['username'] ?? '') === 'demanio' && ($_POST['password'] ?? '') === 'demanio60019!') {
+        $_SESSION['logged_in'] = true;
+        $_SESSION['username'] = 'demanio';
+        header('Location: index.php');
+        exit;
+    } else {
+        $login_error = 'Username o password errati!';
+    }
+}
+
+if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+    include __DIR__ . '/../templates/login.php';
+    exit;
+}
+
+
+// 4. Routing e Selezione Pagina
+$currentPageKey = $_GET['page'] ?? $_SESSION['current_page_key'] ?? 'concessioni';
 if (!array_key_exists($currentPageKey, $PAGES)) {
     $currentPageKey = 'concessioni';
 }
-
+$_SESSION['current_page_key'] = $currentPageKey;
 $pageConfig = $PAGES[$currentPageKey];
-$data = [];
 
-// Invocazione del controller corretto
-switch ($currentPageKey) {
-    case 'concessioni':
-    case 'calcolo_canoni':
-        require_once __DIR__ . '/../src/controllers/concessioni_controller.php';
-        $data = get_concessioni_data($db_connection, $pageConfig);
-        break;
-    case 'importa':
-        require_once __DIR__ . '/../src/controllers/import_controller.php';
-        // La logica di importazione AJAX sarà gestita qui
-        break;
-    case 'scadenzario_solleciti':
-        require_once __DIR__ . '/../src/controllers/solleciti_controller.php';
-        $data = get_solleciti_data($db_connection);
-        break;
-    // ... altri casi
+// 5. Invocazione Controller
+$data = [];
+$controllerPath = __DIR__ . '/../src/controllers/' . ($pageConfig['controller'] ?? '');
+if (!empty($pageConfig['controller']) && file_exists($controllerPath)) {
+    require_once $controllerPath;
+    
+    // Determina la funzione del controller da chiamare (es. get_concessioni_data)
+    $functionName = str_replace('_controller.php', '_data', $pageConfig['controller']);
+    if(function_exists($functionName)) {
+        $conn = get_db_connection();
+        $data = $functionName($conn, $pageConfig);
+        pg_close($conn);
+    }
 }
 
-// Renderizza la pagina
-render_page($currentPageKey, $pageConfig, $data);
+// 6. Rendering della Pagina
+render_page($currentPageKey, $pageConfig, $data, $PAGES, $MENU_GROUPS);
