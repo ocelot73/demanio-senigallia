@@ -1,24 +1,57 @@
 // /public/assets/js/app.js
 
-/** Config HELP e stato colonne (da PHP) */
-const FIELD_HELP = <?= json_encode($FIELD_HELP ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-const hiddenColumns = <?= json_encode($hidden_columns ?? [], JSON_UNESCAPED_UNICODE) ?>;
-
-// --- Funzioni di Utilità ---
-function updateColumnOrder(){ let order=$('#dataTable thead th[data-column]').map(function(){return $(this).data('column');}).get(); $.post(window.location.href,{column_order:order}); }
-function toggleColumn(n){ $.post(window.location.href,{toggle_column:n}, r=>{ if(r.success) location.reload(); },'json'); }
-function saveColumnWidths(){ let w={}; $('#dataTable thead th[data-column]').each(function(){const n=$(this).data('column'); if(n) w[n]=$(this).outerWidth();}); $.post(window.location.href,{column_widths:w}); }
-function applyFilter(n,v){ $.post(window.location.href,{set_filter:n,filter_value:v}, r=>{ if(r.success) location.reload(); },'json'); }
-
-// --- Gestione UI Globale ---
 $(document).ready(function() {
-    // Gestione Sidebar, Modali, Tema Chiaro/Scuro (incolla qui il blocco dal vecchio index.php o dalle risposte precedenti)
+
+    // --- GESTIONE UI GLOBALE (SIDEBAR, TEMA, MODALI) ---
+    $('#sidebar-toggle').on('click', function() {
+        const body = document.body;
+        body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
+    });
+
+    const openModal = (modalId) => $(`#${modalId}`).css('display','flex').delay(10).queue(function(next){ $(this).addClass('open'); next(); });
+    const closeModal = (modalId) => {
+        const $modal = $(`#${modalId}`);
+        $modal.removeClass('open');
+        setTimeout(() => { $modal.css('display', 'none'); $('.help-popup').remove(); }, 300);
+    };
+
+    $('.modal-overlay, .modal-close-btn, #editCancelBtn').on('click', function(e) {
+        if (e.target === this) {
+            closeModal($(this).closest('.modal-overlay').attr('id'));
+        }
+    });
+    $('.modal-container').on('click', e => e.stopPropagation());
+
+    $('.submenu-toggle').on('click', function(e) {
+        e.preventDefault();
+        $(this).parent('.has-submenu').toggleClass('open');
+    });
+
+    const themeToggle = $('#theme-toggle');
+    function setTheme(theme) {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark-theme');
+            themeToggle.find('i').removeClass('fa-moon').addClass('fa-sun');
+            themeToggle.find('.link-text').text('Tema Chiaro');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark-theme');
+            themeToggle.find('i').removeClass('fa-sun').addClass('fa-moon');
+            themeToggle.find('.link-text').text('Tema Scuro');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+    setTheme(localStorage.getItem('theme') || 'light');
+    themeToggle.on('click', () => setTheme(document.documentElement.classList.contains('dark-theme') ? 'light' : 'dark'));
+
+    // --- GESTIONE TABELLA ---
+    // (Include qui tutta la logica per la tabella: filtri, ordinamento, modali, etc., dalle risposte precedenti)
     // ...
-    
-    // --- Logica Specifica per la Pagina di Importazione ---
+
+    // --- LOGICA SPECIFICA PER LA PAGINA DI IMPORTAZIONE ---
     const uploaderCard = document.getElementById('uploaderCard');
     if (uploaderCard) {
-        // --- CORREZIONE: Inserito tutto il blocco JS per l'importazione dal vecchio file ---
         const progressCard = document.getElementById('progressCard'),
               zipFileInput = document.getElementById('zipfile'),
               dropZone = document.getElementById('drop-zone'),
@@ -165,6 +198,4 @@ $(document).ready(function() {
         setupUploader();
     }
     
-    // Incolla qui il resto del codice JS (gestione tabella, modali, etc.) dalle risposte precedenti
-    // ...
 });
