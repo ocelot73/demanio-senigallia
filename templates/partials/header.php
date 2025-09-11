@@ -8,6 +8,11 @@
         </div>
     </div>
     <div class="header-right">
+        <div class="global-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="globalSearch" placeholder="Cerca nella tabella...">
+            <button id="clearSearch" title="Svuota ricerca">&times;</button>
+        </div>
         <?php if ($currentPageKey === 'calcolo_canoni'): ?>
             <form method="GET" style="display:inline-flex; align-items:center; gap: 0.5rem;">
               <input type="hidden" name="page" value="calcolo_canoni">
@@ -21,10 +26,5 @@
               </select>
             </form>
         <?php endif; ?>
-        <div class="global-search">
-            <i class="fas fa-search"></i>
-            <input type="text" id="globalSearch" placeholder="Cerca nella tabella...">
-            <button id="clearSearch" title="Svuota ricerca">&times;</button>
-        </div>
     </div>
 </header>
