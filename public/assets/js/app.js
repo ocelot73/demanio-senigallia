@@ -1,11 +1,12 @@
 // /public/assets/js/app.js
 
 // Passa le configurazioni da PHP a JavaScript
+const APP_URL = (typeof APP_URL !== 'undefined') ? APP_URL : '.';
 const FIELD_HELP = (typeof FIELD_HELP !== 'undefined') ? FIELD_HELP : {};
 const hiddenColumns = (typeof hiddenColumns !== 'undefined') ? hiddenColumns : [];
 
 // --- Funzioni di Utilità per AJAX ---
-function toggleColumn(n) { $.post(window.location.href.split('?')[0] + '?action=toggle_column', { toggle_column: n }, r => { if(r.success) location.reload(); }, 'json'); }
+function toggleColumn(n) { $.post(APP_URL + '/index.php?action=toggle_column', { toggle_column: n }, r => { if(r.success) location.reload(); }, 'json'); }
 function applyFilter(n, v) { $.post(window.location.href.split('?')[0] + '?action=set_filter', { set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json'); }
 
 $(document).ready(function() {
@@ -55,7 +56,7 @@ $(document).ready(function() {
     });
     setTheme(localStorage.getItem('theme') || 'light');
 
-    // --- GESTIONE TABELLA (Logica Originale Adattata) ---
+    // --- GESTIONE TABELLA ---
     function updateHiddenColumnsDisplay(){
         const bar=$('#hiddenColumnsBar'), list=$('#hiddenColumnsList');
         if(hiddenColumns.length > 0){
@@ -69,7 +70,7 @@ $(document).ready(function() {
     updateHiddenColumnsDisplay();
 
     $('.filter-input').on('keypress', function(e){ if (e.key==='Enter'){ e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-
+    
     function highlightHTML(html, regex){ return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join(''); }
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim();
@@ -105,9 +106,10 @@ $(document).ready(function() {
         else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
     });
 
-    // --- GESTIONE MODALI ---
-    // (Incolla qui la logica per le modali `openDetailsModal`, `openEditModal`, etc., dalle risposte precedenti,
-    // assicurandoti che gli URL delle chiamate AJAX siano corretti, es. `index.php?action=...`)
+    // --- GESTIONE MODALI (da completare con la logica di visualizzazione/salvataggio se necessario) ---
+    $('#dataTable tbody').on('click', '.details-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* openDetailsModal($(this).closest('tr').data('idf24')); */ });
+    $('#dataTable tbody').on('click', '.edit-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* openEditModal($(this).closest('tr').data('idf24')); */ });
+
     
     // --- LOGICA PAGINA IMPORTAZIONE ---
     const uploaderCard = document.getElementById('uploaderCard');
@@ -118,11 +120,6 @@ $(document).ready(function() {
               fileInfo = document.getElementById('fileInfo'),
               fileNameDisplay = document.getElementById('fileName'),
               uploadButton = document.getElementById('uploadButton');
-        const progressText = document.getElementById('progress-text'),
-              logContainer = document.getElementById('logContainer'),
-              finalActions = document.getElementById('finalActions'),
-              progressBar = document.getElementById('progress-bar');
-        let eventSource = null;
 
         const setupUploader = () => {
             const browseLink = dropZone.querySelector('.browse-link');
@@ -155,7 +152,9 @@ $(document).ready(function() {
         
         document.getElementById('uploadForm').onsubmit = (e) => {
             e.preventDefault();
-            // ... (resto della logica di upload da risposte precedenti)
+            // La logica di upload via AJAX andrà qui, usando l'URL con action=import_zip
+            // ... Esempio xhr.open('POST', APP_URL + '/index.php?action=import_zip', true);
+            alert("Logica di upload da implementare.");
         };
         
         setupUploader();
