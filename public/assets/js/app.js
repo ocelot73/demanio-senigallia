@@ -56,7 +56,7 @@ $(document).ready(function() {
     });
     setTheme(localStorage.getItem('theme') || 'light');
 
-    // --- GESTIONE TABELLA (Logica Originale Adattata) ---
+    // --- GESTIONE TABELLA ---
     function updateHiddenColumnsDisplay(){
         const bar=$('#hiddenColumnsBar'), list=$('#hiddenColumnsList');
         if(hiddenColumns.length > 0){
@@ -71,51 +71,35 @@ $(document).ready(function() {
 
     $('.filter-input').on('keypress', function(e){ if (e.key==='Enter'){ e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
     
-    // --- [INIZIO BLOCCO CORRETTO] RICERCA GLOBALE CON EVIDENZIAZIONE ---
+    // --- RICERCA GLOBALE CON EVIDENZIAZIONE (CORRETTA) ---
     function highlightHTML(html, regex){
         if (!html) return '';
         return html.split(/(<[^>]*>)/g).map(part => {
             return part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>');
         }).join('');
     }
-
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim();
         $('#clearSearch').toggle(query.length > 0);
-        
         const regex = query.length > 1 ? new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
-
         $('#dataTable tbody tr').each(function() {
             const $row = $(this);
-            
             $row.find('td').each(function() {
                 const $cell = $(this);
-                if ($cell.data('origHtml')) {
-                    $cell.html($cell.data('origHtml'));
-                }
+                if ($cell.data('origHtml')) { $cell.html($cell.data('origHtml')); }
             });
-
-            if (!regex) {
-                $row.show();
-                return;
-            }
-
-            const rowText = $row.text();
-            const match = regex.test(rowText);
+            if (!regex) { $row.show(); return; }
+            const match = regex.test($row.text());
             $row.toggle(match);
-
             if (match) {
                 $row.find('td').each(function() {
                     const $cell = $(this);
-                    if (!$cell.data('origHtml')) {
-                        $cell.data('origHtml', $cell.html());
-                    }
+                    if (!$cell.data('origHtml')) { $cell.data('origHtml', $cell.html()); }
                     $cell.html(highlightHTML($cell.data('origHtml'), regex));
                 });
             }
         });
     });
-
     $('#clearSearch').on('click', () => {
         $('#globalSearch').val('').trigger('input').focus();
         $('#dataTable tbody tr').find('td').each(function() {
@@ -126,8 +110,7 @@ $(document).ready(function() {
             }
         });
     });
-    // --- [FINE BLOCCO CORRETTO] ---
-
+    
     let currentWidthMode = 0;
     $('#toggle-col-width').on('click', function() {
         currentWidthMode = (currentWidthMode + 1) % 3;
@@ -137,72 +120,11 @@ $(document).ready(function() {
         else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
     });
 
-    // --- GESTIONE MODALI ---
-    let editOriginal = { values: {}, idf24: null };
+    // --- GESTIONE MODALI (da completare con la logica di visualizzazione/salvataggio se necessario) ---
     $('#dataTable tbody').on('click', '.details-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale dettagli */ });
     $('#dataTable tbody').on('click', '.edit-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale modifica */ });
-    
-    // Gestori per pulsanti modale modifica
-    $('#editSaveContinueBtn').on('click', () => saveEdits(true));
-    $('#editSaveExitBtn').on('click', () => saveEdits(false));
 
-    function saveEdits(keepOpen) {
-        const updates = {};
-        $('#editForm .edit-field').each(function(){
-            const name = $(this).data('name');
-            const original = editOriginal.values[name];
-            const $input = $(this).find('.edit-input');
-            if ($input.is('[readonly]')) return;
-
-            const val = $input.val();
-            let originalString;
-            
-            if (original === null || typeof original === 'undefined') {
-                originalString = null;
-            } else if (typeof original === 'boolean') {
-                originalString = original ? 'true' : 'false';
-            } else {
-                originalString = String(original);
-            }
-
-            if (val !== originalString) {
-                 updates[name] = val;
-            }
-        });
-
-        if (Object.keys(updates).length === 0) {
-            if (!keepOpen) closeModal('editModal');
-            return;
-        }
-        
-        $.ajax({
-            url: APP_URL + '/index.php',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                action: 'save_concessione_edit',
-                original_idf24: editOriginal.idf24,
-                updates: JSON.stringify(updates)
-            },
-            success: function(r) {
-                if (r.success) {
-                    const newIdf24 = updates['idf24'] || editOriginal.idf24;
-                    if (keepOpen) {
-                        openEditModal(newIdf24);
-                    } else {
-                        location.reload(); 
-                    }
-                } else {
-                    $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
-                }
-            },
-            error: function(xhr, status, error) {
-                 $('#editAlert').text('Errore di comunicazione con il server: ' + error).show();
-            }
-        });
-    }
-
-    // --- LOGICA PAGINA IMPORTAZIONE ---
+    // --- LOGICA PAGINA IMPORTAZIONE (COMPLETA E CORRETTA) ---
     const uploaderCard = document.getElementById('uploaderCard');
     if (uploaderCard) {
         const progressCard = document.getElementById('progressCard'),
@@ -210,24 +132,23 @@ $(document).ready(function() {
               dropZone = document.getElementById('drop-zone'),
               fileInfo = document.getElementById('fileInfo'),
               fileNameDisplay = document.getElementById('fileName'),
-              uploadButton = document.getElementById('uploadButton');
-        
-        // --- [INIZIO BLOCCO CORRETTO] GESTIONE UPLOADER ---
+              uploadButton = document.getElementById('uploadButton'),
+              progressText = document.getElementById('progress-text'),
+              logContainer = document.getElementById('logContainer'),
+              finalActions = document.getElementById('finalActions'),
+              progressBar = document.getElementById('progress-bar');
+        let eventSource = null;
+
         const setupUploader = () => {
             const browseLink = dropZone.querySelector('.browse-link');
-            
             dropZone.onclick = (e) => {
-                if (e.target !== browseLink) {
-                    zipFileInput.click();
-                }
+                if (e.target !== browseLink) zipFileInput.click();
             };
-            
             browseLink.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 zipFileInput.click();
             };
-
             dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
             dropZone.ondragleave = () => dropZone.classList.remove('dragover');
             dropZone.ondrop = (e) => {
@@ -242,7 +163,6 @@ $(document).ready(function() {
             };
             zipFileInput.onchange = handleFileSelection;
         };
-        // --- [FINE BLOCCO CORRETTO] ---
 
         function handleFileSelection() {
             if (zipFileInput.files.length > 0) {
@@ -251,13 +171,105 @@ $(document).ready(function() {
                 uploadButton.disabled = false;
             }
         }
-        
+
         document.getElementById('uploadForm').onsubmit = (e) => {
             e.preventDefault();
-            alert("Logica di upload AJAX da implementare qui, usando l'URL: " + APP_URL + "/index.php?action=import_zip");
-            // Qui andrà il codice XMLHttpRequest per inviare il file
+            if (!zipFileInput.files.length) return;
+
+            uploaderCard.style.display = 'none';
+            progressCard.style.display = 'block';
+            updateLog('info', 'Preparazione e avvio caricamento file...');
+
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append('zipfile', zipFileInput.files[0]);
+
+            xhr.open('POST', APP_URL + '/index.php?action=import_zip', true);
+            
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 5;
+                    updateProgress(percentComplete, `Fase 1/5: Caricamento file... ${Math.round((event.loaded / event.total) * 100)}%`);
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            startSseProcessing(result.processId);
+                        } else {
+                            finishProcess('error', result.error || 'Errore sconosciuto durante il caricamento');
+                        }
+                    } catch (e) {
+                        finishProcess('error', 'Risposta del server non valida: ' + xhr.responseText);
+                    }
+                } else {
+                    finishProcess('error', `Errore del server: ${xhr.status} ${xhr.statusText}`);
+                }
+            };
+
+            xhr.onerror = () => {
+                finishProcess('error', 'Errore di rete durante il caricamento del file.');
+            };
+            
+            xhr.send(formData);
         };
         
+        function startSseProcessing(processId) {
+            const url = new URL(APP_URL + '/index.php');
+            url.searchParams.set('action', 'process_import');
+            url.searchParams.set('id', processId);
+            eventSource = new EventSource(url.toString());
+
+            eventSource.addEventListener('log', e => {
+                const data = JSON.parse(e.data);
+                updateLog(data.status, data.message);
+            });
+
+            eventSource.addEventListener('progress', e => {
+                const data = JSON.parse(e.data);
+                updateProgress(data.value, data.text);
+            });
+
+            eventSource.addEventListener('close', e => {
+                const data = JSON.parse(e.data);
+                finishProcess(data.status, data.message);
+            });
+
+            eventSource.onerror = (e) => {
+                finishProcess('error', 'Connessione con il server interrotta. Ricaricare la pagina.');
+            };
+        }
+
+        const iconMap = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle', error: 'fas fa-times-circle' };
+        function updateLog(status, message) {
+            const item = document.createElement('div');
+            item.className = `log-item status-${status}`;
+            item.innerHTML = `<i class="icon ${iconMap[status] || ''}"></i><span class="message">${message}</span>`;
+            logContainer.appendChild(item);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateProgress(value, text) {
+            progressBar.style.width = `${Math.min(value, 100)}%`;
+            progressText.textContent = text;
+        }
+
+        function finishProcess(status, message) {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            updateProgress(100, "Completato");
+            updateLog(status, `<strong>${message}</strong>`);
+            progressBar.classList.remove('error', 'warning');
+            if (status === 'error') progressBar.classList.add('error');
+            if (status === 'warning') progressBar.classList.add('warning');
+            finalActions.style.display = 'block';
+        }
+
         setupUploader();
     }
 });
