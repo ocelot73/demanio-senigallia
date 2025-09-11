@@ -1,0 +1,79 @@
+/* /public/assets/css/style.css */
+
+/* --- INCOLLA QUI TUTTO IL CSS PRESENTE NEL TAG <style> DEL TUO FILE index.php ORIGINALE --- */
+/* Esempio iniziale: */
+:root {
+    --font-family: 'Titillium Web', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-width: 260px;
+    /* ... etc ... */
+}
+/* ... tutto il resto del CSS ... */
+
+
+/* --- AGGIUNGI QUI I NUOVI STILI PER IL CALENDARIO E ALTRI ELEMENTI --- */
+.fc { /* Stile per FullCalendar */
+    font-family: var(--font-family);
+}
+.fc .fc-button {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    color: white !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    text-transform: none !important;
+}
+.fc .fc-button:hover {
+    background-color: var(--color-primary-hover) !important;
+}
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: var(--color-primary-light) !important;
+}
+.fc-event {
+    border-radius: 4px;
+    padding: 3px 5px;
+    cursor: pointer;
+}
+.fc-h-event {
+    border: none !important;
+}
+.fc-event-main {
+    font-weight: 600;
+}
+.fc-event-title-container{
+    padding-left: 5px;
+}
+.card-container {
+    background: var(--color-surface);
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Stili per la pagina di login */
+html.login-page body {
+    font-family: var(--font-family);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+.login-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 48px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.login-logo {
+    width: 70px;
+    height: auto;
+    margin-bottom: 24px;
+}
+/* ... Aggiungi tutti gli altri stili per il login dal file originale... */
