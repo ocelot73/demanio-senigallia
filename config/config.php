@@ -1,7 +1,6 @@
 <?php
 // /config/config.php
 
-// Abilita la visualizzazione degli errori in fase di sviluppo. Rimuovere in produzione.
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -9,7 +8,6 @@ error_reporting(E_ALL);
  * ==========================================================
  * Configurazione Database
  * ==========================================================
- * NOTA: Per sicurezza, questo file NON dovrebbe essere tracciato da Git.
  */
 define('DB_HOST', 'localhost');
 define('DB_PORT', '5432');
@@ -24,6 +22,8 @@ define('DB_SCHEMA', 'demanio');
  * ==========================================================
  */
 define('APP_NAME', 'Gestione Demanio');
+// !!! CORREZIONE CRITICA: INSERISCI QUI L'URL COMPLETO DELLA CARTELLA PUBLIC !!!
+define('APP_URL', 'https://sit.comune.senigallia.an.it/demanio-senigallia/public');
 define('RECORDS_PER_PAGE', 35);
 
 date_default_timezone_set('Europe/Rome');
@@ -41,11 +41,5 @@ $FIELD_HELP = [
         'hint'    => 'Es. 2025000012',
         'examples'=> ['2023000456','2024000100'],
     ],
-    'pec_inviata' => [
-        'label'   => 'PEC Inviata',
-        'title'   => 'PEC Inviata',
-        'content' => '<p>Flag booleano che indica se la PEC è stata inviata.</p><p><strong>Booleano:</strong> true/false, t/f, 1/0.</p>',
-        'hint'    => 'true | false',
-    ],
-    // ... INCOLLA QUI IL RESTO DELL'ARRAY $FIELD_HELP DAL TUO FILE ORIGINALE ...
+    // ... INCOLLA QUI IL RESTO DELL'ARRAY $FIELD_HELP DAL TUO VECCHIO FILE index.php ...
 ];
