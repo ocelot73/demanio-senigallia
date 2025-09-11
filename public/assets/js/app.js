@@ -56,7 +56,7 @@ $(document).ready(function() {
     });
     setTheme(localStorage.getItem('theme') || 'light');
 
-    // --- GESTIONE TABELLA ---
+    // --- GESTIONE TABELLA (Logica Originale Adattata) ---
     function updateHiddenColumnsDisplay(){
         const bar=$('#hiddenColumnsBar'), list=$('#hiddenColumnsList');
         if(hiddenColumns.length > 0){
@@ -70,7 +70,7 @@ $(document).ready(function() {
     updateHiddenColumnsDisplay();
 
     $('.filter-input').on('keypress', function(e){ if (e.key==='Enter'){ e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-    
+
     function highlightHTML(html, regex){ return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join(''); }
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim();
@@ -107,10 +107,10 @@ $(document).ready(function() {
     });
 
     // --- GESTIONE MODALI (da completare con la logica di visualizzazione/salvataggio se necessario) ---
-    $('#dataTable tbody').on('click', '.details-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* openDetailsModal($(this).closest('tr').data('idf24')); */ });
-    $('#dataTable tbody').on('click', '.edit-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* openEditModal($(this).closest('tr').data('idf24')); */ });
+    $('#dataTable tbody').on('click', '.details-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale dettagli */ });
+    $('#dataTable tbody').on('click', '.edit-btn', function(e){ e.preventDefault(); e.stopPropagation(); /* Inserire qui la chiamata alla funzione per aprire la modale modifica */ });
 
-    
+
     // --- LOGICA PAGINA IMPORTAZIONE ---
     const uploaderCard = document.getElementById('uploaderCard');
     if (uploaderCard) {
@@ -132,7 +132,7 @@ $(document).ready(function() {
             dropZone.ondrop = (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
-                if (e.dataTransfer.files.length && (e.dataTransfer.files[0].type.includes('zip') || e.dataTransfer.files[0].name.endsWith('.zip'))) {
+                if (e.dataTransfer.files.length > 0 && (e.dataTransfer.files[0].type.includes('zip') || e.dataTransfer.files[0].name.endsWith('.zip'))) {
                     zipFileInput.files = e.dataTransfer.files;
                     handleFileSelection();
                 } else {
@@ -152,9 +152,8 @@ $(document).ready(function() {
         
         document.getElementById('uploadForm').onsubmit = (e) => {
             e.preventDefault();
-            // La logica di upload via AJAX andrà qui, usando l'URL con action=import_zip
-            // ... Esempio xhr.open('POST', APP_URL + '/index.php?action=import_zip', true);
-            alert("Logica di upload da implementare.");
+            alert("Logica di upload AJAX da implementare qui, usando l'URL: " + APP_URL + "/index.php?action=import_zip");
+            // Qui andrà il codice XMLHttpRequest per inviare il file
         };
         
         setupUploader();
