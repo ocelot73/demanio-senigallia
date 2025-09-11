@@ -1,10 +1,17 @@
 <?php // /templates/concessioni.php ?>
 <div class="controls-bar">
     <div class="btn-group">
-        </div>
+        <?php // ?>
+        <?php if ($currentPageKey === 'concessioni'): ?>
+            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_null" class="btn" title="Verificati ma non spediti"><i class="fas fa-check-circle" style="color:var(--color-warning);"></i> Verificati non spediti</a>
+            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_not_null" class="btn" title="Verificati e spediti"><i class="fas fa-check-double" style="color:var(--color-success);"></i> Verificati e spediti</a>
+            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_null_pec_null" class="btn" title="Non verificati"><i class="fas fa-times-circle" style="color:var(--color-danger);"></i> Non verificati</a>
+        <?php endif; ?>
+    </div>
     <div class="btn-group">
-        <a href="index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn"><i class="fas fa-home"></i> Ripristina Vista</a>
-        <a href="index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn"><i class="fas fa-file-csv"></i> Esporta</a>
+        <?php // ?>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn"><i class="fas fa-home"></i> Ripristina Vista</a>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn"><i class="fas fa-file-csv"></i> Esporta</a>
     </div>
 </div>
 
@@ -24,7 +31,8 @@
                     <div class="header-content">
                         <span class="col-title"><?= htmlspecialchars($col) ?></span>
                         <div class="header-title-actions">
-                          <a href="?page=<?= $currentPageKey ?>&order=<?= $col ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
+                            <?php // ?>
+                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= $col ?>&dir=<?= $order_column == $col && $order_direction == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= $order_column == $col ? 'active' : '' ?>">
                             <?= $order_column == $col ? ($order_direction == 'ASC' ? '↑' : '↓') : '↕' ?>
                           </a>
                           <button class="toggle-btn" data-column="<?= htmlspecialchars($col) ?>">✕</button>
@@ -40,7 +48,7 @@
           <tr data-idf24="<?= htmlspecialchars($row['idf24'] ?? '') ?>">
               <td style="text-align:center;">
                   <span class="row-actions">
-                    <a href="#" class="details-btn" title="Dettagli SID"><i class="fas fa-search"></i></a>
+                      <a href="#" class="details-btn" title="Dettagli SID"><i class="fas fa-search"></i></a>
                     <a href="#" class="edit-btn" title="Modifica"><i class="fas fa-pencil-alt"></i></a>
                   </span>
               </td>
