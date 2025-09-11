@@ -1,6 +1,8 @@
 <?php
 // /src/controllers/concessioni_controller.php
 
+require_once __DIR__ . '/../models/concessione.php'; // <-- AGGIUNGI QUESTA RIGA
+
 /**
  * Prepara i dati per le viste a tabella (concessioni, calcolo canoni, etc.).
  */
@@ -10,7 +12,7 @@ function concessioni_data($conn, $pageConfig) {
 
     // Gestione filtri e ordinamento da sessione/richiesta
     $filters = $_SESSION['column_filters'] ?? [];
-    $page = max(1, (int)($_GET['page'] ?? 1));
+    $page = max(1, (int)($_GET['p'] ?? 1)); // Ho corretto 'page' in 'p' per coerenza con il template di paginazione
     $order_column = $_GET['order'] ?? 'denominazione ditta concessionario';
     $order_direction = $_GET['dir'] ?? 'ASC';
 
