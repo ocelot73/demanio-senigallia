@@ -20,7 +20,7 @@ handle_ajax_request($FIELD_HELP);
 $currentPageKey = $_GET['page'] ?? $_SESSION['current_page_key'] ?? 'concessioni';
 $redirect_url = APP_URL . '/index.php?page=' . $currentPageKey;
 
-// Logica per i filtri rapidi (SOLO per la pagina concessioni)
+// --- CORREZIONE: Applica i filtri rapidi SOLO se la pagina è 'concessioni' ---
 if ($currentPageKey === 'concessioni' && isset($_GET['filter_type'])) {
     $filter_type = $_GET['filter_type'];
     $new_filters = [];
@@ -43,7 +43,7 @@ if ($currentPageKey === 'concessioni' && isset($_GET['filter_type'])) {
     exit;
 }
 
-// Logica per i bottoni di gestione vista
+// --- CORREZIONE: Aggiunta la logica per i bottoni dell'interfaccia ---
 if (isset($_GET['reset_view'])) {
     unset($_SESSION['hidden_columns'], $_SESSION['column_filters'], $_SESSION['column_order'], $_SESSION['column_widths'], $_SESSION['full_view']);
     header('Location: ' . $redirect_url);
@@ -60,7 +60,6 @@ if (isset($_GET['show_all'])) {
     exit;
 }
 if (isset($_GET['hide_all'])) {
-    // Questa logica richiede una connessione al DB per ottenere tutte le colonne
     $conn = get_db_connection();
     $table = $PAGES[$currentPageKey]['table'] ?? null;
     if ($conn && $table) {
