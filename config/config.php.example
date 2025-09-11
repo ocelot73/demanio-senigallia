@@ -11,10 +11,10 @@ error_reporting(E_ALL);
  */
 define('DB_HOST', 'localhost');
 define('DB_PORT', '5432');
-define('DB_NAME', 'area11');
-define('DB_USER', 'demanio');
-define('DB_PASS', 'demanio60019!');
-define('DB_SCHEMA', 'demanio');
+define('DB_NAME', 'db');
+define('DB_USER', 'user');
+define('DB_PASS', 'password');
+define('DB_SCHEMA', 'schema');
 
 /**
  * ==========================================================
