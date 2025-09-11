@@ -1,8 +1,8 @@
 <?php
 // /public/index.php
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+ini_set('display_errors', 1); // <-- RIGA AGGIUNTA PER DEBUG
+error_reporting(E_ALL);      // <-- RIGA AGGIUNTA PER DEBUG
 
 session_start();
 
@@ -39,45 +39,4 @@ if ($currentPageKey === 'concessioni' && isset($_GET['filter_type'])) {
             break;
     }
     $_SESSION['column_filters'] = $new_filters;
-    header('Location: ' . $redirect_url);
-    exit;
-}
-
-// Logica per i bottoni di gestione vista
-if (isset($_GET['reset_view'])) {
-    unset($_SESSION['hidden_columns'], $_SESSION['column_filters'], $_SESSION['column_order'], $_SESSION['column_widths'], $_SESSION['full_view']);
-    header('Location: ' . $redirect_url);
-    exit;
-}
-if (isset($_GET['toggle_view'])) {
-    $_SESSION['full_view'] = !($_SESSION['full_view'] ?? false);
-    header('Location: ' . $redirect_url);
-    exit;
-}
-if (isset($_GET['show_all'])) {
-    $_SESSION['hidden_columns'] = [];
-    header('Location: ' . $redirect_url);
-    exit;
-}
-if (isset($_GET['clear_filters'])) {
-    $_SESSION['column_filters'] = [];
-    header('Location: ' . $redirect_url);
-    exit;
-}
-// ... aggiungere qui altra logica per i bottoni se necessario ...
-
-// 4. Gestione Login e Logout
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
-    exit;
-}
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    if (($_POST['username'] ?? '') === 'demanio' && ($_POST['password'] ?? '') === 'demanio60019!') {
-        $_SESSION['logged_in'] = true;
-        $_SESSION['username'] = 'demanio';
-        $_SESSION['first_load_after_login'] = true;
-        header('Location: index.php');
-        exit;
-    } else {
-        $
+    header('Location: ' . $redirect_url
