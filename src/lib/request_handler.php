@@ -53,7 +53,6 @@ function send_sse($event, $data) {
     flush();
 }
 
-
 /**
  * Gestisce tutte le richieste AJAX dell'applicazione.
  */
@@ -66,41 +65,44 @@ function handle_ajax_request(&$FIELD_HELP) {
     // Gestione speciale per Server-Sent Events, che non restituisce JSON
     if ($action === 'process_import') {
         handle_sse_process(); // Questa funzione conterrà la logica e terminerà lo script
+        exit;
     }
 
     // Per tutte le altre azioni, procedi con la risposta JSON standard
     header('Content-Type: application/json; charset=utf-8');
-    $conn = get_db_connection();
+    
+    $conn = null; // Inizializza la connessione a null
     $response = [];
 
-    require_once __DIR__ . '/../models/concessione.php';
-    require_once __DIR__ . '/../models/sollecito.php';
-
     try {
+        // La connessione al DB viene aperta solo se necessaria
         switch ($action) {
             case 'get_sid_details':
-                $idf24 = $_POST['idf24'] ?? null;
-                if (!$idf24) throw new Exception('ID F24 non fornito.');
-                $response = get_sid_details_model($conn, $idf24);
-                break;
-
             case 'get_concessione_edit':
-                $idf24 = $_POST['idf24'] ?? null;
-                if ($idf24 === null) throw new Exception('ID F24 non fornito.');
-                $response = get_concessione_for_edit_model($conn, $idf24);
-                break;
-
             case 'save_concessione_edit':
-                $original_idf24 = $_POST['original_idf24'] ?? null;
-                $updates = json_decode($_POST['updates'] ?? '{}', true);
-                if (!$original_idf24) throw new Exception('ID F24 originale non fornito.');
-                $response = save_concessione_model($conn, $original_idf24, $updates);
-                break;
-
             case 'get_calendar_events':
-                $start = $_GET['start'] ?? date('Y-m-01');
-                $end = $_GET['end'] ?? date('Y-m-t');
-                $response = get_solleciti_as_events_model($conn, $start, $end);
+                $conn = get_db_connection();
+                require_once __DIR__ . '/../models/concessione.php';
+                require_once __DIR__ . '/../models/sollecito.php';
+
+                if ($action === 'get_sid_details') {
+                    $idf24 = $_POST['idf24'] ?? null;
+                    if (!$idf24) throw new Exception('ID F24 non fornito.');
+                    $response = get_sid_details_model($conn, $idf24);
+                } elseif ($action === 'get_concessione_edit') {
+                     $idf24 = $_POST['idf24'] ?? null;
+                    if ($idf24 === null) throw new Exception('ID F24 non fornito.');
+                    $response = get_concessione_for_edit_model($conn, $idf24);
+                } elseif ($action === 'save_concessione_edit') {
+                    $original_idf24 = $_POST['original_idf24'] ?? null;
+                    $updates = json_decode($_POST['updates'] ?? '{}', true);
+                    if (!$original_idf24) throw new Exception('ID F24 originale non fornito.');
+                    $response = save_concessione_model($conn, $original_idf24, $updates);
+                } elseif ($action === 'get_calendar_events') {
+                    $start = $_GET['start'] ?? date('Y-m-01');
+                    $end = $_GET['end'] ?? date('Y-m-t');
+                    $response = get_solleciti_as_events_model($conn, $start, $end);
+                }
                 break;
 
             case 'import_zip':
@@ -172,7 +174,6 @@ function handle_sse_process() {
         exit;
     }
 
-    // Impostazioni per SSE
     date_default_timezone_set('Europe/Rome');
     header('Content-Type: text/event-stream');
     header('Cache-Control: no-cache');
@@ -180,30 +181,25 @@ function handle_sse_process() {
     header('X-Accel-Buffering: no');
     while (ob_get_level() > 0) ob_end_clean();
 
-    // Configurazione specifica per l'importazione
     $host_import     = "localhost";
     $port_import     = "5432";
     $dbname_import   = "area11";
     $user_import     = "sitadm";
     $password_import = "Superuser60019!";
     $schema_import   = "demanio";
-
     $workDir = sys_get_temp_dir() . '/' . $processId;
 
     send_sse('progress', ['value' => 0, 'text' => 'In attesa di avvio...']);
     send_sse('log', ['status' => 'info', 'message' => 'Inizializzazione processo di importazione']);
-
     $processInfoFile = $workDir . '/process_info.json';
     if (!file_exists($processInfoFile)) {
         send_sse('log', ['status' => 'error', 'message' => 'Processo non trovato o scaduto.']);
         send_sse('close', ['status' => 'error', 'message' => 'Processo non valido']);
         exit;
     }
-
     $processInfo = json_decode(file_get_contents($processInfoFile), true);
     $fileName = $processInfo['file_name'] ?? '';
 
-    // FASE 1: Verifica del file
     send_sse('progress', ['value' => 5, 'text' => 'Fase 1/5: Verifica file...']);
     send_sse('log', ['status' => 'info', 'message' => 'Verifica del file ZIP in corso']);
     $zipPath = $workDir . '/' . $fileName;
@@ -221,7 +217,6 @@ function handle_sse_process() {
     send_sse('progress', ['value' => 10, 'text' => 'Fase 1/5: File verificato']);
     send_sse('log', ['status' => 'success', 'message' => 'File ZIP verificato: ' . htmlspecialchars($fileName) . ' (' . formatBytes(filesize($zipPath)) . ')']);
 
-    // FASE 2: Estrazione archivio ZIP
     send_sse('progress', ['value' => 15, 'text' => 'Fase 2/5: Estrazione file ZIP...']);
     send_sse('log', ['status' => 'info', 'message' => 'Inizio estrazione archivio ZIP']);
     $zip = new ZipArchive;
@@ -243,7 +238,6 @@ function handle_sse_process() {
     send_sse('progress', ['value' => 40, 'text' => 'Fase 2/5: Estrazione completata']);
     send_sse('log', ['status' => 'success', 'message' => 'Estrazione archivio ZIP completata con successo']);
 
-    // FASE 3: Ricerca e conversione file JSON
     send_sse('progress', ['value' => 45, 'text' => 'Fase 3/5: Ricerca file dati...']);
     send_sse('log', ['status' => 'info', 'message' => 'Ricerca file JSON tra i file estratti']);
     $jsonFile = findJsonFile($workDir);
@@ -285,7 +279,6 @@ function handle_sse_process() {
     send_sse('progress', ['value' => 70, 'text' => 'Fase 3/5: Dati preparati']);
     send_sse('log', ['status' => 'success', 'message' => 'File dati posizionato correttamente per PostgreSQL']);
 
-    // FASE 4: Aggiornamento database
     send_sse('progress', ['value' => 75, 'text' => 'Fase 4/5: Connessione al database...']);
     send_sse('log', ['status' => 'info', 'message' => 'Connessione al database PostgreSQL in corso']);
     $conn_import = @pg_connect("host=$host_import port=$port_import dbname=$dbname_import user=$user_import password=$password_import");
@@ -340,7 +333,6 @@ function handle_sse_process() {
     send_sse('progress', ['value' => 98, 'text' => 'Fase 5/5: Pulizia finale...']);
     send_sse('log', ['status' => 'info', 'message' => "Aggiornamento viste completato: $successCount successi, $errorCount errori."]);
 
-    // FASE 5: Pulizia finale
     send_sse('log', ['status' => 'info', 'message' => 'Pulizia file temporanei in corso...']);
     deleteDirectory($workDir);
     send_sse('log', ['status' => 'info', 'message' => 'Pulizia completata.']);
