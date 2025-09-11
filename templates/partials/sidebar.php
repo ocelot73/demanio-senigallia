@@ -17,7 +17,6 @@
                     if (in_array($key, $group_config['pages'])) {
                         $is_in_group = true;
                         if (!in_array($group_name, $rendered_groups)) {
-                            // Controlla se una delle pagine del gruppo è quella attiva
                             $is_group_active = count(array_intersect([$currentPageKey], $group_config['pages'])) > 0;
                             ?>
                             <li class="has-submenu <?= $is_group_active ? 'open' : '' ?>">
