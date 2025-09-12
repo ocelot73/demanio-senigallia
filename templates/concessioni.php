@@ -38,14 +38,24 @@
                   if (in_array($col, $hidden_columns)) continue;
                   $is_sorted = ($col == $order_column);
                   $next_dir = $is_sorted && strtoupper($order_direction) === 'ASC' ? 'DESC' : 'ASC';
+                  
+                  // Logica per le nuove icone
+                  $sort_icon_class = 'fa-sort'; // Icona di default (non ordinato)
+                  if ($is_sorted) {
+                      $sort_icon_class = strtoupper($order_direction) === 'ASC' ? 'fa-sort-up' : 'fa-sort-down';
+                  }
                 ?>
                 <th data-column="<?= htmlspecialchars($col) ?>">
                   <div class="header-content">
                     <span class="col-title"><?= htmlspecialchars($col) ?></span>
                     <div class="header-title-actions">
-                      <a href="<?= htmlspecialchars(build_current_url(['order' => $col, 'dir' => $next_dir])) ?>" class="sort-btn <?= $is_sorted ? 'active' : '' ?>" title="Ordina"><?= $is_sorted && strtoupper($order_direction) === 'ASC' ? '↑' : ($is_sorted ? '↓' : '↕') ?></a>
-                      <button class="toggle-btn" onclick="toggleColumn('<?= htmlspecialchars($col) ?>')" title="Nascondi">✕</button>
-                    </div>
+                        <a href="<?= htmlspecialchars(build_current_url(['order' => $col, 'dir' => $next_dir])) ?>" class="sort-btn <?= $is_sorted ? 'active' : '' ?>" title="Ordina">
+                            <i class="fas <?= $sort_icon_class ?>"></i>
+                        </a>
+                        <button class="toggle-btn" onclick="toggleColumn('<?= htmlspecialchars($col) ?>')" title="Nascondi">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                        </div>
                   </div>
                   <input type="text" class="filter-input" data-column="<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars($filters[$col] ?? '') ?>" placeholder="Filtra..." title="Premi Invio per filtrare">
                   <div class="resizer"></div>
