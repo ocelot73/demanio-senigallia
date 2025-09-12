@@ -27,11 +27,13 @@
             if (isFirstLoad) {
                 document.body.classList.remove('sidebar-collapsed');
                 localStorage.setItem('sidebarCollapsed', 'false');
-                <?php $_SESSION['first_load_after_login'] = false; // Resetta il flag ?>
+                <?php $_SESSION['first_load_after_login'] = false; ?>
             } else if (sidebarState === 'true') {
                 document.body.classList.add('sidebar-collapsed');
             }
         })();
+        // Espone APP_URL al JS (necessario per chiamate AJAX robuste)
+        window.APP_URL = "<?= APP_URL ?>";
     </script>
 </head>
 <body>
