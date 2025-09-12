@@ -53,13 +53,14 @@ $current_page    = $current_page    ?? 1;
                 $verVal = strtolower(trim((string)($row['verifica'] ?? $row['verifica '] ?? '')));
                 $isVerified = in_array($verVal, ['si','sì','sí','sì'], true);
                 $trClass = $isVerified ? '' : 'no-verifica';
+                $idf24 = (string)($row['idf24'] ?? '');
             ?>
-                <tr class="<?= $trClass ?>">
+                <tr class="<?= $trClass ?>" data-idf24="<?= htmlspecialchars($idf24) ?>">
                     <td class="row-actions">
-                        <a class="details-btn" href="<?= htmlspecialchars(build_current_url(['details' => $row['idf24'] ?? ''])) ?>" title="Dettagli">
+                        <a class="details-btn" href="#" data-idf24="<?= htmlspecialchars($idf24) ?>" title="Dettagli">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a class="edit-btn" href="<?= htmlspecialchars(build_current_url(['edit' => $row['idf24'] ?? ''])) ?>" title="Modifica">
+                        <a class="edit-btn" href="#" data-idf24="<?= htmlspecialchars($idf24) ?>" title="Modifica">
                             <i class="fas fa-pen-to-square"></i>
                         </a>
                     </td>
