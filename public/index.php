@@ -9,12 +9,13 @@ session_start();
 // 1) Bootstrap
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/pages.php';
+require_once __DIR__ . '/../config/detail_views.php'; // <-- AGGIUNTA
 require_once __DIR__ . '/../src/lib/database.php';
 require_once __DIR__ . '/../src/lib/template.php';
 require_once __DIR__ . '/../src/lib/request_handler.php';
 
 // 2) Gestione richieste AJAX / SSE (ritorna immediatamente se intercettata)
-handle_ajax_request($FIELD_HELP);
+handle_ajax_request($FIELD_HELP, $DETAIL_VIEWS); // <-- AGGIUNTA $DETAIL_VIEWS
 
 // 3) Determinazione pagina corrente
 $currentPageKey = $_GET['page'] ?? ($_SESSION['current_page_key'] ?? 'concessioni');
@@ -89,14 +90,11 @@ if (isset($_GET['filter_type'])) {
     if ($currentPageKey === 'concessioni') {
         $ft = $_GET['filter_type'];
         if ($ft === 'verifica_not_null_pec_null') {
-            $new_filters['verifica'] = 'NOT_NULL';
-            $new_filters['pec inviata'] = 'NULL';
+            $new_filters['verifica'] = 'NOT_NULL'; $new_filters['pec inviata'] = 'NULL';
         } elseif ($ft === 'verifica_not_null_pec_not_null') {
-            $new_filters['verifica'] = 'NOT_NULL';
-            $new_filters['pec inviata'] = 'NOT_NULL';
+            $new_filters['verifica'] = 'NOT_NULL'; $new_filters['pec inviata'] = 'NOT_NULL';
         } elseif ($ft === 'verifica_null_pec_null') {
-            $new_filters['verifica'] = 'NULL';
-            $new_filters['pec inviata'] = 'NULL';
+            $new_filters['verifica'] = 'NULL';     $new_filters['pec inviata'] = 'NULL';
         }
     }
     $_SESSION['column_filters'] = $new_filters;
@@ -120,7 +118,6 @@ if (isset($_GET['export_csv']) && !empty($pageConfig['table'])) {
     $hidden_columns = $_SESSION['hidden_columns'] ?? [];
     $column_filters = $_SESSION['column_filters'] ?? [];
     $full_view = $_SESSION['full_view'] ?? ($currentPageKey === 'concessioni');
-
     $page = max(1, (int)($_GET['p'] ?? 1));
     $offset = ($page - 1) * RECORDS_PER_PAGE;
     $order_column = $_GET['order'] ?? 'denominazione ditta concessionario';
@@ -134,8 +131,8 @@ if (isset($_GET['export_csv']) && !empty($pageConfig['table'])) {
         exit;
     }
     $all_columns = [];
-    for ($i = 0; $i < pg_num_fields($res); $i++) {
-        $all_columns[] = pg_field_name($res, $i);
+    for ($i = 0; $i < pg_num_fields($result); $i++) {
+        $all_columns[] = pg_field_name($result, $i);
     }
     pg_free_result($res);
 
@@ -157,10 +154,8 @@ if (isset($_GET['export_csv']) && !empty($pageConfig['table'])) {
 
     // Clausola WHERE per i filtri
     list($where_clause, $params) = build_filter_where_clause($conn, $column_filters);
-
     $query = 'SELECT * FROM ' . pg_escape_identifier($conn, $table);
     if (!empty($where_clause)) $query .= ' WHERE ' . $where_clause;
-
     if (!empty($order_column) && in_array($order_column, $columns, true)) {
         $qcol = pg_escape_identifier($conn, $order_column);
         $query .= ' ORDER BY ' . $qcol . ' ' . $order_direction . ' NULLS LAST';
@@ -183,7 +178,6 @@ if (isset($_GET['export_csv']) && !empty($pageConfig['table'])) {
 
     // BOM UTF-8 per Excel
     echo "\xEF\xBB\xBF";
-
     // Intestazioni
     if (!empty($visible_columns)) {
         $headers = array_map(function($h){
@@ -208,7 +202,7 @@ if (isset($_GET['export_csv']) && !empty($pageConfig['table'])) {
             }
             // Quote se contiene separatore o newline o doppi apici
             if (str_contains($value, ';') || str_contains($value, '"') || str_contains($value, "\n")) {
-                $value = '"' . str_replace('"','""',$value) . '"';
+                $value = '"' . str_replace('"', '""', $value) . '"';
             }
             $csv_row[] = $value;
         }
@@ -242,7 +236,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 // 6) Controller -> Dati -> Render
 // Apri connessione se la pagina richiede dati da tabella
 $conn = null;
-if (!empty($pageConfig['table'])) {
+if (!empty($pageConfig['table']) || ($pageConfig['view'] ?? '') === 'scadenzario') {
     $conn = get_db_connection();
     // Per "Calcolo Canoni" imposta l'anno (coerente con esportazione)
     if (($pageConfig['table'] ?? '') === 'calcolo_canoni_v') {
@@ -256,18 +250,16 @@ $data = [];
 if (!empty($pageConfig['controller'])) {
     $controller_path = __DIR__ . '/../src/controllers/' . $pageConfig['controller'];
     if (file_exists($controller_path)) require_once $controller_path;
+
     // Mappa controller->funzione
-    if ($pageConfig['controller'] === 'import_controller.php') {
-        $data = import_data($conn, $pageConfig);
-    } elseif ($pageConfig['controller'] === 'solleciti_controller.php') {
-        $data = scadenzario_data($conn, $pageConfig);
-    } else {
-        $data = concessioni_data($conn, $pageConfig);
+    $function_name = str_replace('_controller.php', '_data', $pageConfig['controller']);
+    if (function_exists($function_name)) {
+        $data = $function_name($conn, $pageConfig);
     }
 }
 
 // Render pagina
-render_page($currentPageKey, $pageConfig, $data, $PAGES, $MENU_GROUPS);
+render_page($currentPageKey, $pageConfig, $data, $PAGES, $MENU_GROUPS, $FIELD_HELP);
 
 // Pulizia
 if ($conn) {
