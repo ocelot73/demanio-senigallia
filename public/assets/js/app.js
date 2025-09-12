@@ -7,15 +7,21 @@ $(document).ready(function() {
     const hiddenColumns = window.hiddenColumnsData || [];
 
     // --- Funzioni di Utilità ---
-    window.toggleColumn = function(n) { $.post(window.location.href, { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json'); };
-    function applyFilter(n, v) { $.post(window.location.href, { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json'); }
+    window.toggleColumn = function(n) { $.post(window.APP_URL + '/index.php', { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json'); };
+    function applyFilter(n, v) { $.post(window.APP_URL + '/index.php', { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json'); }
     function saveColumnWidths() {
         let w = {};
         $('#dataTable thead th[data-column]').each(function() {
             const n = $(this).data('column');
             if (n) w[n] = $(this).outerWidth();
         });
-        $.post(window.location.href, { action: 'save_column_widths', column_widths: w });
+        $.post(window.APP_URL + '/index.php', { action: 'save_column_widths', column_widths: w });
+    }
+    function updateColumnOrder() {
+        let order = $('#dataTable thead th[data-column]').map(function() {
+            return $(this).data('column');
+        }).get();
+        $.post(window.APP_URL + '/index.php', { action: 'save_column_order', column_order: order });
     }
 
     // --- Gestione UI (Sidebar, Tema, Modali) ---
@@ -59,6 +65,20 @@ $(document).ready(function() {
     $('.modal-container').on('click', e => e.stopPropagation());
 
     // --- Gestione Tabella ---
+    // Colonne Draggable
+    if ($('#dataTable thead tr').length > 0) {
+        $('#dataTable thead tr').sortable({
+            items: 'th[data-column]',
+            axis: 'x',
+            containment: 'parent',
+            cursor: 'grabbing',
+            helper: 'clone',
+            stop: function(event, ui) {
+                updateColumnOrder();
+            }
+        }).disableSelection();
+    }
+    
     $('#dataTable tbody').on('click', 'tr', function(e) {
         if ($(e.target).is('a, button, .row-actions i, .row-actions')) return;
         $(this).toggleClass('row-selected');
@@ -142,12 +162,17 @@ $(document).ready(function() {
         openModal('detailsModal');
         nav.empty().html('<p>Caricamento...</p>'); content.html('');
         $('#modalTitle').text('Dettagli SID - ID Concessione: ' + idf24);
-        $.post(window.location.href, { action: 'get_sid_details', idf24: idf24 }, function(resp) {
+        
+        $.post(window.APP_URL + '/index.php', { action: 'get_sid_details', idf24: idf24 }, function(resp) {
             nav.empty(); content.empty();
             if (resp.error) { content.html(`<p class="error-message">${resp.error}</p>`); return; }
 
-            Object.keys(resp).forEach(k => {
-                const it = resp[k];
+            // CORREZIONE: Imposta il sottotitolo con la data di aggiornamento
+            $('#modalSubtitle').text('Ultimo Aggiornamento Viste: ' + (resp.last_update_time || 'N/D'));
+            
+            // CORREZIONE: Itera sull'oggetto 'views' annidato nella risposta, non sulla risposta stessa
+            Object.keys(resp.views).forEach(k => {
+                const it = resp.views[k];
                 const isDisabled = it.count === 0 && !it.error;
                 const btn = $(`<button class="nav-button ${isDisabled ? 'disabled' : ''}" data-target="panel-${k}" ${isDisabled ? 'disabled' : ''}></button>`)
                     .html(`<i class="${it.icon}"></i><span>${it.label} (${it.count})</span>`);
@@ -180,13 +205,191 @@ $(document).ready(function() {
                     content.append(panel);
                 }
             });
+            
             nav.off('click', '.nav-button').on('click', '.nav-button', function() {
                 if ($(this).is(':disabled')) return;
                 nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
                 content.find('.detail-panel').hide(); $('#' + $(this).data('target')).show();
-                $('#modalSubtitle').text($(this).data('comment') || '');
             });
             nav.find('.nav-button:not(:disabled)').first().trigger('click');
+        }, 'json');
+    }
+
+    // --- LOGICA MODALE MODIFICA (MATITA) ---
+    let editOriginalData = {};
+    $('#dataTable tbody').on('click', '.edit-btn', function(e) { e.preventDefault(); e.stopPropagation(); openEditModal($(this).closest('tr').data('idf24')); });
+
+    function openEditModal(idf24) {
+        if (!idf24) return;
+        openModal('editModal');
+        $('#editForm').html('<p style="text-align:center; padding: 2rem;">Caricamento dati in corso...</p>');
+        $('#editAlert').hide();
+
+        $.post(window.APP_URL + '/index.php', { action: 'get_concessione_edit', idf24: idf24 }, function(r) {
+            if (r.error) { $('#editAlert').text(r.error).show(); return; }
+            editOriginalData = r;
+            const form = $('#editForm').empty();
+            const groups = {
+                general: { label: 'Dati Principali', fields: [] },
+                t: { label: 'Turistico-ricreative', fields: [] },
+                nt: { label: 'NON Turistiche-ricreative', fields: [] },
+                pac: { label: 'Pesca Acquacoltura Cantieristica', fields: [] }
+            };
+
+            r.columns.forEach(col => {
+                const prefix = col.name.substring(0, col.name.indexOf('_'));
+                const fieldHtml = buildField(col);
+                if (['t', 'nt', 'pac'].includes(prefix)) {
+                    groups[prefix].fields.push(fieldHtml);
+                } else {
+                    groups.general.fields.push(fieldHtml);
+                }
+            });
+
+            Object.values(groups).forEach(group => {
+                let hasValue = false;
+                for (const fieldHtml of group.fields) {
+                    const fieldName = $(fieldHtml).data('name');
+                    const value = editOriginalData.values[fieldName];
+                    if (value !== null && String(value).trim() !== '') {
+                        hasValue = true; break;
+                    }
+                }
+                if (hasValue) group.hasActiveFields = true;
+            });
+
+            Object.values(groups).forEach((group, index) => {
+                if (group.fields.length > 0) {
+                    const isOpen = index === 0;
+                    const accordionItem = $(`<div class="accordion-item ${isOpen ? 'open' : ''}"></div>`);
+                    const accordionHeader = $(`<div class="accordion-header ${group.hasActiveFields ? 'has-active-fields' : ''}">${group.label}</div>`);
+                    const accordionContent = $('<div class="accordion-content"></div>');
+                    const grid = $('<div class="edit-grid"></div>').append(group.fields);
+                    accordionContent.append(grid);
+                    accordionItem.append(accordionHeader).append(accordionContent);
+                    form.append(accordionItem);
+                }
+            });
+
+            $('.accordion-header').on('click', function() { $(this).parent('.accordion-item').toggleClass('open'); });
+            $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
+            $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
+        }, 'json');
+    }
+    
+    function buildField(col) {
+        const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
+        const isReadOnly = name === 'id' || name === 'geom';
+        let displayLabel = help?.label || name.replace(/_/g, ' ');
+        const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
+        const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
+        const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
+        
+        // CORREZIONE: Aggiunge l'icona '?' se la configurazione HELP esiste per il campo
+        if (help) $label.append(buildHelpDot(name, help));
+        
+        let $input;
+        const hasValue = value !== null && String(value).trim() !== '';
+        if (ui === 'boolean') {
+            $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''} required><option value="" disabled ${hasValue ? '' : 'selected'}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
+            if (value === true || String(value).toLowerCase() === 't') $input.val('true');
+            else if (value === false || String(value).toLowerCase() === 'f') $input.val('false');
+        } else {
+            // CORREZIONE: Imposta placeholder='NULL' per i campi vuoti per far funzionare l'etichetta flottante
+            const placeholder = (value === null) ? 'NULL' : '';
+            $input = $(`<input type="text" class="edit-input" id="edit-field-${name}" placeholder="${placeholder}" ${isReadOnly ? 'readonly' : ''} />`);
+            if(value !== null) $input.val(value);
+        }
+
+        $container.append($input).append($label);
+        $field.append($container);
+        return $field;
+    }
+
+    function saveEdits(keepOpen) {
+        const updates = {};
+        $('#editForm .edit-field').each(function() {
+            const name = $(this).data('name');
+            const original = editOriginalData.values[name] ?? null;
+            const $input = $(this).find('.edit-input');
+            if ($input.is('[readonly],[disabled]')) return;
+            
+            const current = $input.val();
+            let originalString = original === null ? null : (typeof original === 'boolean' ? (original ? 'true' : 'false') : String(original));
+
+            if (current !== originalString) {
+                 updates[name] = current;
+            }
+        });
+
+        if (Object.keys(updates).length === 0) {
+            if (!keepOpen) closeModal('editModal');
+            return;
+        }
+
+        $.post(window.APP_URL + '/index.php', { action:'save_concessione_edit', original_idf24: editOriginalData.idf24, updates: JSON.stringify(updates) }, function(r) {
+            if (r.success) {
+                const newIdf24 = updates['idf24'] || editOriginalData.idf24;
+                if (keepOpen) {
+                    openEditModal(newIdf24);
+                } else {
+                    location.reload();
+                }
+            } else {
+                $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
+            }
+        }, 'json');
+    }
+
+    $('#editSaveContinueBtn').on('click', () => saveEdits(true));
+    $('#editSaveExitBtn').on('click', () => saveEdits(false));
+
+    // --- Gestione Help Popups ---
+    function buildHelpDot(name, help) {
+        const title = help.title || name.replace(/_/g, ' ');
+        const content = help.content || '';
+        const $dot = $(`<button type="button" class="help-dot" aria-label="Aiuto">?</button>`);
+        $dot.on('click', e => { e.preventDefault(); e.stopPropagation(); showHelpPopup($dot, title, `(${name})`, content); });
+        return $dot;
+    }
+    
+    function makeDraggable(popup) {
+        const dragHandle = popup.find('.help-title');
+        let isDragging = false, initialMouseX, initialMouseY, initialPopupX, initialPopupY;
+
+        dragHandle.on('mousedown', function(e) {
+            e.preventDefault(); isDragging = true;
+            initialMouseX = e.clientX; initialMouseY = e.clientY;
+            const rect = popup[0].getBoundingClientRect();
+            initialPopupX = rect.left; initialPopupY = rect.top;
+            popup.css('transform', 'none');
+
+            $(document).on('mousemove.drag', function(e) {
+                if (isDragging) {
+                    const deltaX = e.clientX - initialMouseX, deltaY = e.clientY - initialMouseY;
+                    let newX = initialPopupX + deltaX, newY = initialPopupY + deltaY;
+                    const popRect = popup[0].getBoundingClientRect(), margin = 5;
+                    if (newX < margin) newX = margin;
+                    if (newY < margin) newY = margin;
+                    if (newX + popRect.width > window.innerWidth - margin) newX = window.innerWidth - popRect.width - margin;
+                    if (newY + popRect.height > window.innerHeight - margin) newY = window.innerHeight - popRect.height - margin;
+                    popup.css({ left: newX + 'px', top: newY + 'px' });
+                }
+            });
+            $(document).on('mouseup.drag', function() { isDragging = false; $(document).off('mousemove.drag mouseup.drag'); });
+        });
+    }
+
+    function showHelpPopup($anchor, title, subtitle, content) {
+        $('.help-pop').remove();
+        const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
+        $('body').append($pop);
+        makeDraggable($pop);
+
+        const dotRect = $anchor[0].getBoundingClientRect();
+        let top = dotRect.bottom + 8;
+        let left = dotRect.left + dotRect.width / 2;
+        $popclick');
         }, 'json');
     }
 
