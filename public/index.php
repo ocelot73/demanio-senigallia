@@ -66,7 +66,7 @@ if ($currentPageKey === 'importa') {
     if (isset($_GET['action']) && $_GET['action'] === 'process' && isset($_GET['id'])) { date_default_timezone_set('Europe/Rome'); header('Content-Type: text/event-stream'); header('Cache-Control: no-cache'); header('Connection: keep-alive'); header('X-Accel-Buffering: no'); while (ob_get_level() > 0) ob_end_clean(); function send_sse($event, $data) { echo "event: $event\n"; echo "data: " . json_encode($data) . "\n\n"; if (function_exists('ob_flush')) ob_flush(); flush(); } $processId = $_GET['id']; $workDir = sys_get_temp_dir() . '/' . $processId; send_sse('log', ['status' => 'info', 'message' => 'Inizializzazione processo...']); if (!file_exists($workDir . '/process_info.json')) { send_sse('close', ['status' => 'error', 'message' => 'Processo non valido']); exit; } $fileName = json_decode(file_get_contents($workDir . '/process_info.json'), true)['file_name'] ?? ''; $zipPath = $workDir . '/' . $fileName; send_sse('progress', ['value' => 10, 'text' => 'Fase 1/5: File verificato']); send_sse('log', ['status' => 'success', 'message' => 'File ZIP verificato: ' . htmlspecialchars($fileName)]); send_sse('progress', ['value' => 15, 'text' => 'Fase 2/5: Estrazione...']); $zip = new ZipArchive; $zip->open($zipPath); $zip->extractTo($workDir); $zip->close(); unlink($zipPath); send_sse('progress', ['value' => 40, 'text' => 'Fase 2/5: Estrazione completata']); send_sse('log', ['status' => 'success', 'message' => 'Estrazione completata.']); send_sse('progress', ['value' => 45, 'text' => 'Fase 3/5: Conversione...']); $jsonFile = findJsonFile($workDir); if (!$jsonFile) { send_sse('close', ['status' => 'error', 'message' => 'File .json non trovato']); exit; } $jsonFilePath = $workDir . '/' . $jsonFile; send_sse('log', ['status' => 'success', 'message' => 'File dati trovato: ' . htmlspecialchars($jsonFile)]); $convertedJsonPath = $workDir . '/demanio.json'; exec("jq -c '.[]' " . escapeshellarg($jsonFilePath) . " > " . escapeshellarg($convertedJsonPath), $output, $returnCode); if ($returnCode !== 0) { send_sse('close', ['status' => 'error', 'message' => 'Conversione dati fallita']); exit; } send_sse('log', ['status' => 'success', 'message' => 'Conversione formato JSON completata.']); $pgTargetPath = '/var/lib/postgresql/demanio.json'; exec("sudo /bin/mv " . escapeshellarg($convertedJsonPath) . " " . escapeshellarg($pgTargetPath), $output, $returnCode); if ($returnCode !== 0) { send_sse('close', ['status' => 'error', 'message' => 'Impossibile preparare i dati']); exit; } send_sse('progress', ['value' => 70, 'text' => 'Fase 3/5: Dati preparati']); send_sse('log', ['status' => 'success', 'message' => 'File dati posizionato per PostgreSQL.']); send_sse('progress', ['value' => 75, 'text' => 'Fase 4/5: Aggiornamento DB...']); $conn_import = pg_connect("host=$host_import port=$port_import dbname=$dbname_import user=$user_import password=$password_import"); if (!$conn_import) { send_sse('close', ['status' => 'error', 'message' => 'Connessione DB fallita']); exit; } pg_query($conn_import, "SET search_path TO " . pg_escape_identifier($conn_import, $schema_import)); send_sse('log', ['status' => 'success', 'message' => 'Connessione al DB stabilita.']); $result = pg_query($conn_import, "SELECT matviewname FROM pg_matviews WHERE schemaname=" . pg_escape_literal($conn_import, $schema_import) . " ORDER BY matviewname"); $views = pg_fetch_all_columns($result, 0) ?: []; $totalViews = count($views); send_sse('log', ['status' => 'info', 'message' => "Trovate $totalViews viste. Inizio aggiornamento..."]); $errorCount = 0; foreach ($views as $index => $view) { send_sse('progress', ['value' => 85 + (($index + 1) / $totalViews) * 13, 'text' => "Fase 4/5: Aggiornamento vista " . ($index + 1) . "/$totalViews..."]); if (!pg_query($conn_import, "REFRESH MATERIALIZED VIEW " . pg_escape_identifier($conn_import, $schema_import) . "." . pg_escape_identifier($conn_import, $view))) { $errorCount++; } } pg_close($conn_import); send_sse('progress', ['value' => 98, 'text' => 'Fase 5/5: Pulizia...']); deleteDirectory($workDir); send_sse('log', ['status' => 'info', 'message' => 'Pulizia completata.']); if ($errorCount > 0) { send_sse('close', ['status' => 'warning', 'message' => "Completato con $errorCount errori"]); } else { send_sse('close', ['status' => 'success', 'message' => 'Importazione completata']); } exit; }
 }
 
-// --- [INIZIO CORREZIONE]: Reintegrazione della funzionalità di Esportazione CSV ---
+// --- Logica di Esportazione CSV ---
 if (isset($_GET['export_csv'])) {
     $conn = get_db_connection();
     $table = $pageConfig['table'] ?? 'concessioni_unione_v';
@@ -77,7 +77,6 @@ if (isset($_GET['export_csv'])) {
         @pg_query($conn, "SELECT set_config('demanio.anno', '" . pg_escape_string($conn, (string)$selected_year) . "', false)");
     }
     
-    // Funzione helper locale per la clausola WHERE, identica all'originale per fedeltà 1:1
     function buildFilterWhereClause_forExport($conn, $column_filters, $columns, $column_types) {
         $where = []; $params = []; $i = 1;
         foreach ($column_filters as $col => $value) {
@@ -110,10 +109,20 @@ if (isset($_GET['export_csv'])) {
     }
 
     $hidden_columns = $_SESSION['hidden_columns'] ?? [];
-    $visible_columns = array_diff($columns, $hidden_columns);
+    $visible_columns = array_filter(array_diff($columns, $hidden_columns));
     list($where_clause, $filter_params) = buildFilterWhereClause_forExport($conn, $_SESSION['column_filters'] ?? [], $all_columns, $column_types);
     
-    $query = "SELECT " . (empty($visible_columns) ? '*' : '"' . implode('", "', array_map('pg_escape_identifier', $visible_columns)) . '"') . " FROM " . pg_escape_identifier($conn, $table);
+    // --- [INIZIO CORREZIONE] ---
+    // La chiamata a `pg_escape_identifier` è stata corretta per usare una funzione anonima
+    // che passa esplicitamente la variabile `$conn`, risolvendo l'errore.
+    $escaped_visible_columns = array_map(function($c) use ($conn) {
+        return pg_escape_identifier($conn, $c);
+    }, $visible_columns);
+    $select_columns_str = empty($escaped_visible_columns) ? '*' : implode(', ', $escaped_visible_columns);
+    // --- [FINE CORREZIONE] ---
+    
+    $query = "SELECT " . $select_columns_str . " FROM " . pg_escape_identifier($conn, $table);
+
     if (!empty($where_clause)) $query .= " WHERE $where_clause";
 
     $order_column = $_GET['order'] ?? (in_array('denominazione ditta concessionario', $all_columns) ? 'denominazione ditta concessionario' : ($all_columns[0] ?? ''));
@@ -135,7 +144,7 @@ if (isset($_GET['export_csv'])) {
 
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="export_' . $currentPageKey . '_' . date('Y-m-d') . '.csv"');
-    echo "\xEF\xBB\xBF"; // BOM for UTF-8 Excel compatibility
+    echo "\xEF\xBB\xBF";
     $out = fopen('php://output', 'w');
     fputcsv($out, $visible_columns, ';');
     while ($row = pg_fetch_assoc($result)) {
@@ -144,7 +153,6 @@ if (isset($_GET['export_csv'])) {
     fclose($out);
     exit;
 }
-// --- [FINE CORREZIONE] ---
 
 // --- Gestione Azioni Globali via GET ---
 if (isset($_GET['logout'])) { session_destroy(); header('Location: ' . APP_URL . '/index.php'); exit; }
