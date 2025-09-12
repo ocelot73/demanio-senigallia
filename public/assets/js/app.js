@@ -22,6 +22,7 @@ $(document).ready(function() {
         $.post(window.location.href, { action: 'save_column_widths', column_widths: w });
     }
 
+    
     // --- Gestione UI (Sidebar, Tema, Modali) ---
     $('#sidebar-toggle').on('click', function() {
         const body = document.body;
@@ -32,7 +33,6 @@ $(document).ready(function() {
         e.preventDefault();
         $(this).parent('.has-submenu').toggleClass('open');
     });
-
     const themeToggle = $('#theme-toggle');
     function setTheme(theme) {
         if (theme === 'dark') {
@@ -60,7 +60,6 @@ $(document).ready(function() {
     $('#editModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn') || e.target.id === 'editCancelBtn') closeModal('editModal'); });
     $('#eventDetailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('eventDetailsModal'); });
     $('.modal-container').on('click', e => e.stopPropagation());
-
 
     // --- Gestione Tabella ---
     $('#dataTable tbody').on('click', 'tr', function(e) {
@@ -102,7 +101,7 @@ $(document).ready(function() {
     $('.filter-input').on('keypress', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); }
     });
-    
+
     function highlightHTML(html, regex) {
         return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
     }
@@ -113,6 +112,7 @@ $(document).ready(function() {
         $('#dataTable tbody tr').each(function() {
             const $row = $(this);
             const text = $row.text();
+            
             const match = !regex || regex.test(text);
             $row.toggle(match);
             $row.find('td').each(function() {
@@ -184,6 +184,7 @@ $(document).ready(function() {
                     content.append(panel);
                 }
             });
+
             nav.off('click', '.nav-button').on('click', '.nav-button', function() {
                 if ($(this).is(':disabled')) return;
                 nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
@@ -251,7 +252,7 @@ $(document).ready(function() {
                     form.append(accordionItem);
                 }
             });
-            
+
             $('.accordion-header').on('click', function() {
                 $(this).parent('.accordion-item').toggleClass('open');
             });
@@ -264,7 +265,7 @@ $(document).ready(function() {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
-        
+
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
@@ -303,7 +304,7 @@ $(document).ready(function() {
                  updates[name] = current;
             }
         });
-        
+
         if (Object.keys(updates).length === 0) {
             if (!keepOpen) closeModal('editModal');
             return;
@@ -335,19 +336,44 @@ $(document).ready(function() {
         return $dot;
     }
     
+    // CORREZIONE: Funzione `makeDraggable` e `showHelpPopup` sostituite con la versione robusta di `index.php`
     function makeDraggable(popup) {
         const dragHandle = popup.find('.help-title');
-        let isDragging=false, iMX, iMY, iPX, iPY;
+        let isDragging = false, initialMouseX, initialMouseY, initialPopupX, initialPopupY;
+
         dragHandle.on('mousedown', function(e) {
-            e.preventDefault(); isDragging=true; iMX=e.clientX; iMY=e.clientY; const r=popup[0].getBoundingClientRect(); iPX=r.left; iPY=r.top;
-            popup.css({ 'transform': 'none', 'position': 'fixed' }); // Ensure fixed position for dragging
+            e.preventDefault();
+            isDragging = true;
+            initialMouseX = e.clientX;
+            initialMouseY = e.clientY;
+            const rect = popup[0].getBoundingClientRect();
+            initialPopupX = rect.left;
+            initialPopupY = rect.top;
+
+            popup.css('transform', 'none');
+
             $(document).on('mousemove.drag', function(e) {
-                if(isDragging) {
-                    let nX=iPX+(e.clientX-iMX), nY=iPY+(e.clientY-iMY);
-                    popup.css({left:nX+'px',top:nY+'px'});
+                if (isDragging) {
+                    const deltaX = e.clientX - initialMouseX;
+                    const deltaY = e.clientY - initialMouseY;
+                    let newX = initialPopupX + deltaX;
+                    let newY = initialPopupY + deltaY;
+
+                    const popRect = popup[0].getBoundingClientRect();
+                    const margin = 5;
+                    if (newX < margin) newX = margin;
+                    if (newY < margin) newY = margin;
+                    if (newX + popRect.width > window.innerWidth - margin) newX = window.innerWidth - popRect.width - margin;
+                    if (newY + popRect.height > window.innerHeight - margin) newY = window.innerHeight - popRect.height - margin;
+
+                    popup.css({ left: newX + 'px', top: newY + 'px' });
                 }
             });
-            $(document).on('mouseup.drag', function() { isDragging=false; $(document).off('mousemove.drag mouseup.drag'); });
+
+            $(document).on('mouseup.drag', function() {
+                isDragging = false;
+                $(document).off('mousemove.drag mouseup.drag');
+            });
         });
     }
 
@@ -356,14 +382,42 @@ $(document).ready(function() {
         const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
         $('body').append($pop);
         makeDraggable($pop);
-        
-        const pos = $anchor[0].getBoundingClientRect();
+
+        const dotRect = $anchor[0].getBoundingClientRect();
+        let top = dotRect.bottom + 8;
+        let left = dotRect.left + dotRect.width / 2;
+
         $pop.css({
             position: 'fixed',
-            top: pos.bottom + 5 + 'px',
-            left: pos.left + (pos.width / 2) + 'px',
+            top: `${top}px`,
+            left: `${left}px`,
             transform: 'translateX(-50%)'
-        }).show().addClass('open');
+        });
+
+        setTimeout(() => {
+            const popRect = $pop[0].getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            const margin = 10;
+
+            if (popRect.height >= viewportHeight - (margin * 2)) {
+                top = margin;
+            } else if (popRect.bottom > viewportHeight - margin) {
+                top = dotRect.top - popRect.height - 8;
+            }
+
+            if (top < margin) top = margin;
+
+            if (popRect.left < margin) {
+                left = margin;
+                $pop.css({ transform: 'translateX(0)' });
+            } else if (popRect.right > viewportWidth - margin) {
+                left = viewportWidth - margin;
+                $pop.css({ transform: 'translateX(-100%)' });
+            }
+
+            $pop.css({ top: `${top}px`, left: `${left}px` }).addClass('open');
+        }, 10);
     }
     
     $(document).on('click', function(e) { if (!$(e.target).closest('.help-pop, .help-dot').length) $('.help-pop').remove(); });
@@ -403,7 +457,7 @@ $(document).ready(function() {
             }
         };
         zipFileInput.onchange = handleFileSelection;
-        
+
         function handleFileSelection() {
             if (zipFileInput.files.length) {
                 fileNameDisplay.textContent = zipFileInput.files[0].name;
@@ -424,16 +478,17 @@ $(document).ready(function() {
             formData.append('zipfile', zipFileInput.files[0]);
 
             $.ajax({
-                url: window.APP_URL + '/index.php?page=importa', // Correct URL for the request
+                url: window.APP_URL + '/index.php?page=importa',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
+                dataType: 'json', // Attendiamo una risposta JSON
                 xhr: function() {
                     const xhr = new window.XMLHttpRequest();
                     xhr.upload.addEventListener('progress', function(evt) {
                         if (evt.lengthComputable) {
-                            const percentComplete = (evt.loaded / evt.total) * 5; // Upload is 5% of the total process
+                            const percentComplete = (evt.loaded / evt.total) * 5;
                             updateProgress(percentComplete, `Fase 1/5: Caricamento file... ${Math.round((evt.loaded / evt.total) * 100)}%`);
                         }
                     }, false);
@@ -458,7 +513,6 @@ $(document).ready(function() {
             url.searchParams.set('action', 'process');
             url.searchParams.set('id', processId);
             eventSource = new EventSource(url.toString());
-
             eventSource.addEventListener('log', e => { const data = JSON.parse(e.data); updateLog(data.status, data.message); });
             eventSource.addEventListener('progress', e => { const data = JSON.parse(e.data); updateProgress(data.value, data.text); });
             eventSource.addEventListener('close', e => { const data = JSON.parse(e.data); finishProcess(data.status, data.message); });
