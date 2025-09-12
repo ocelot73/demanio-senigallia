@@ -19,10 +19,18 @@
               <label for="yearSelector" style="font-weight: 600;">Anno:</label>
               <select id="yearSelector" name="anno" class="btn" onchange="this.form.submit()">
                   <?php 
-                  $selected_year = $_GET['anno'] ?? date('Y');
-                  for ($y = date('Y') + 1; $y >= 2020; $y--): ?>
-                  <option value="<?= $y ?>" <?= $y == $selected_year ? 'selected' : '' ?>><?= $y ?></option>
-                  <?php endfor; ?>
+                  // CORREZIONE: La logica per popolare gli anni deve essere identica all'originale,
+                  // interrogando il DB per gli anni disponibili invece di un loop statico.
+                  $selected_year_for_query = $_SESSION['selected_year'] ?? date('Y');
+                  $years_result = pg_query($conn, "SELECT DISTINCT anno FROM demanio.canoni ORDER BY anno DESC");
+                  $available_years = $years_result ? array_map(fn($r)=>(int)$r['anno'], pg_fetch_all($years_result) ?: []) : [];
+                  if (!in_array($selected_year_for_query, $available_years)) { 
+                      $available_years[] = $selected_year_for_query; 
+                      rsort($available_years); 
+                  }
+                  foreach ($available_years as $year): ?>
+                  <option value="<?= $year ?>" <?= $year == $selected_year_for_query ? 'selected' : '' ?>><?= $year ?></option>
+                  <?php endforeach; ?>
               </select>
             </form>
         <?php endif; ?>
