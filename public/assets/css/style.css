@@ -166,6 +166,7 @@ mark.hl { background: #fde047; padding: 0 2px; border-radius: 2px; }
 #detailsModal .modal-body { display: flex; flex-grow: 1; overflow: hidden; }
 #detailsModal .modal-nav { width: 250px; border-right: 1px solid var(--color-border); padding: 1rem; background: var(--color-surface); overflow-y: auto; }
 #detailsModal .modal-content { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+/* --- [CODICE CORRETTO] --- Altezza pulsanti ridotta */
 .nav-button { display: flex; width: 100%; text-align: left; padding: 7px 14px; margin-bottom: 3px; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; background: transparent; color: var(--color-text-primary); transition: all .2s; font-family: var(--font-family); }
 .nav-button:hover:not(.active) { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-light); }
 .nav-button.active { color: #fff; background: var(--color-primary); border-color: var(--color-primary); }
@@ -175,61 +176,50 @@ mark.hl { background: #fde047; padding: 0 2px; border-radius: 2px; }
 .detail-item-label { font-weight: 600; color: var(--color-text-secondary); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 4px; }
 .detail-item-value { color: var(--color-text-primary); font-size: 0.9rem; word-break: break-word; }
 
-/* --- [CODICE CORRETTO] --- Stili per MODALE MODIFICA (MATITA) --- */
+/* --- [CODICE CORRETTO] --- Stili per Badge */
+.badge { padding: 3px 8px; border-radius: 12px; font-weight: 600; font-size: 0.8rem; display: inline-block; }
+.badge-blue { background-color: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
+.badge-orange { background-color: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
+.badge-purple { background-color: #f5f3ff; color: #5b21b6; border: 1px solid #ede9fe; }
+html.dark-theme .badge-blue { background-color: #1e3a8a; color: #bfdbfe; border: 1px solid #1e40af; }
+html.dark-theme .badge-orange { background-color: #7c2d12; color: #fed7aa; border: 1px solid #9a3412; }
+html.dark-theme .badge-purple { background-color: #4c1d95; color: #ddd6fe; border: 1px solid #5b21b6; }
+
+/* --- [CODICE CORRETTO] --- Stili per MODALE MODIFICA (MATITA) - RIPRISTINATI DALL'ORIGINALE --- */
+#editModal .modal-container { max-width: 90vw; width: 1400px; height: 95vh; }
 #editModal .modal-content { padding: 1.5rem; overflow-y: auto; }
 #editAlert { display:none; color:var(--color-danger); font-weight:600; margin-bottom:1rem; background:#fee2e2; padding:1rem; border-radius:var(--radius-md); border: 1px solid var(--color-danger); }
 html.dark-theme #editAlert { background: #450a0a; border-color: #7f1d1d; }
 
-.edit-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-}
-.edit-grid-loading { text-align: center; padding: 2rem; color: var(--color-text-secondary); }
+/* Accordion Styles */
+.accordion-item { border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 1rem; background-color: color-mix(in srgb, var(--color-surface) 50%, transparent); overflow: hidden; }
+.accordion-header { background-color: color-mix(in srgb, var(--color-surface) 70%, transparent); padding: 0.75rem 1.25rem; cursor: pointer; font-size: 1.1rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center; user-select: none; transition: all 0.2s ease; }
+.accordion-header.has-active-fields { background-color: var(--color-primary-light); color: var(--color-primary); }
+html.dark-theme .accordion-header.has-active-fields { background-color: color-mix(in srgb, var(--color-primary) 25%, transparent); }
+.accordion-header::after { content: '\\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; transition: transform 0.3s ease; }
+.accordion-item.open .accordion-header::after { transform: rotate(-180deg); }
+.accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out; padding: 0 1.5rem; }
+.accordion-item.open .accordion-content { max-height: 2000px; padding: 1.5rem; }
 
-.edit-field {
-    display: flex;
-    flex-direction: column;
-}
-.edit-field label {
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.edit-field .edit-input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-    font-family: var(--font-family);
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-}
-.edit-field .edit-input:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-.edit-field .edit-input[readonly] {
-    background-color: var(--color-bg);
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+/* Stile Campi "MD3 Inspired" */
+.edit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+.edit-field { position: relative; }
+.edit-field-container { position: relative; background-color: var(--color-bg); border-radius: var(--radius-md) var(--radius-md) 0 0; padding: 22px 14px 8px 14px; border: 1px solid var(--color-border); border-bottom: 2px solid var(--color-border); transition: all 0.2s ease; }
+.edit-field-container:focus-within { border-bottom-color: var(--color-primary); }
+.edit-field-container.is-readonly { background-color: var(--color-surface); cursor: not-allowed; opacity: 0.7; }
+.edit-field .edit-input { width: 100%; border: none; outline: none; font-family: var(--font-family); font-size: 1rem; background: transparent; color: var(--color-text-primary); padding: 0; }
+.edit-field .edit-input::placeholder { color: var(--color-text-secondary); opacity: 0.7; }
+.edit-field .edit-input[readonly] { cursor: not-allowed; color: var(--color-text-secondary); }
+select.edit-input { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0 center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 1.5em; }
+.edit-field-label { position: absolute; top: 16px; left: 14px; font-size: 1rem; color: var(--color-text-secondary); pointer-events: none; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; background-color: var(--color-bg); padding: 0 4px; }
+.edit-field-container.is-readonly .edit-field-label { background-color: var(--color-surface); }
+.edit-input:focus + .edit-field-label, .edit-input:not([placeholder="NULL"]) + .edit-field-label, .edit-input:not(:placeholder-shown) + .edit-field-label, select.edit-input:valid + .edit-field-label { top: -10px; left: 10px; font-size: 0.8rem; color: var(--color-primary); font-weight: 700; }
 
-/* Stili per Help Icon & Popup (INVARIATO) */
+/* Stili per Help Icon & Popup (RIPRISTINATI) */
 .help-dot{ --md-surface:#F1F3FF; --md-outline:#C5CAE9; --md-ink:#0D47A1; position:relative;display:inline-flex;align-items:center;justify-content:center; width:22px;height:22px;border-radius:50%; background:var(--md-surface); border:1px solid var(--md-outline); color:var(--md-ink); font-weight:800;font-size:12px;line-height:1; cursor:pointer;overflow:hidden; box-shadow:0 1px 2px rgba(13, 71, 161, .15), 0 2px 6px rgba(13, 71, 161, .08); transition:transform .12s ease, box-shadow .2s ease, background .2s ease; font-family: var(--font-family); pointer-events: all; }
 .help-dot:hover{ transform:translateY(-1px); box-shadow:0 4px 10px rgba(13,71,161,.18); background:#EBEEFF; }
 .help-dot:active{ transform:scale(.97); }
-.help-dot::after{ content:""; position:absolute; inset:auto; width:0; height:0; border-radius:50%; background:rgba(13,71,161,.12); transform:translate(-50%,-50%); pointer-events:none; }
-.help-dot.ripple::after{ left:50%; top:50%; width:200%; height:200%; transition:width .35s ease, height .35s ease, opacity .45s ease; opacity:0; }
-.help-pop{position:absolute;z-index:9999;min-width:260px;max-width:520px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:12px 14px;display:none;font-family:var(--font-family); opacity: 0; transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out, left 0.2s ease-in-out; max-height: calc(100vh - 20px); overflow-y: auto;}
+.help-pop{position:absolute;z-index:9999;min-width:260px;max-width:520px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:12px 14px;display:none;font-family:var(--font-family); opacity: 0; transition: opacity 0.2s ease-in-out; }
 .help-pop.open{display:block; opacity: 1;}
 .help-title{font-weight:700;margin:0 0 6px 0;font-size:1rem;color:var(--color-primary); cursor: move; user-select: none;}
 .help-sub{font-size:0.8rem;color:var(--color-text-secondary);margin-bottom:6px;font-style:italic}
