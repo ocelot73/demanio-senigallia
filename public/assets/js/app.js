@@ -16,7 +16,7 @@ $(document).ready(function() {
                 alert('Si è verificato un errore: ' + (r.error || 'Dettagli non disponibili.'));
             }
         }, dataType).fail(function(jqXHR, textStatus, errorThrown) {
-            console.error('Errore di comunicazione AJAX per azione ' + action + ':', jqXHR.responseText);
+             console.error('Errore di comunicazione AJAX per azione ' + action + ':', jqXHR.responseText);
             alert('Errore di comunicazione con il server: ' + (jqXHR.responseJSON?.error || errorThrown));
         });
     }
@@ -29,11 +29,11 @@ $(document).ready(function() {
             const n = $(this).data('column');
             if (n) w[n] = $(this).outerWidth();
         });
-        $.post(window.location.href, { column_widths: w });
+        postAction('save_column_widths', { column_widths: w }, () => {}); // Callback vuota, non serve ricaricare
     }
     function updateColumnOrder() {
         let order = $('#dataTable thead tr th[data-column]').map(function() { return $(this).data('column'); }).get();
-        $.post(window.location.href, { column_order: order });
+        postAction('save_column_order', { column_order: order }, () => {}); // Callback vuota, non serve ricaricare
     }
 
 
@@ -43,10 +43,12 @@ $(document).ready(function() {
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
     });
+
     $('.submenu-toggle').on('click', function(e) {
         e.preventDefault();
         $(this).parent('.has-submenu').toggleClass('open');
     });
+
     const themeToggle = $('#theme-toggle');
     function setTheme(theme) {
         if (theme === 'dark') {
@@ -76,20 +78,6 @@ $(document).ready(function() {
     $('.modal-container').on('click', e => e.stopPropagation());
 
     // --- Gestione Tabella ---
-    if (typeof $.ui !== 'undefined' && typeof $.ui.sortable !== 'undefined') {
-        $('#dataTable thead tr').sortable({
-            items: '> th[data-column]',
-            axis: 'x',
-            containment: 'parent',
-            cursor: 'grabbing',
-            helper: 'clone',
-            placeholder: 'ui-sortable-placeholder',
-            stop: function() {
-                updateColumnOrder();
-            }
-        }).disableSelection();
-    }
-
     $('#dataTable tbody').on('click', 'tr', function(e) {
         if (!$(e.target).is('a, button, .row-actions, .row-actions i')) {
             $(this).toggleClass('row-selected');
@@ -114,9 +102,9 @@ $(document).ready(function() {
     });
     $(document).on('mousemove', function(e) { if (isResizing) { const w = startWidth + (e.pageX - startX); if (w > 30) currentTh.width(w); } })
              .on('mouseup', function() { if (isResizing) { isResizing = false; currentTh = null; $('body').css('cursor', ''); saveColumnWidths(); } });
-    
+
     $('.filter-input').on('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-    
+
     function highlightHTML(html, regex) {
         return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
     }
@@ -137,7 +125,7 @@ $(document).ready(function() {
         });
     });
     $('#clearSearch').on('click', () => { $('#globalSearch').val('').trigger('input').focus(); });
-    
+
     let currentWidthMode = 0;
     $('#toggle-col-width').on('click', function() {
         currentWidthMode = (currentWidthMode + 1) % 3; const $table = $('#dataTable');
@@ -156,6 +144,8 @@ $(document).ready(function() {
         openModal('detailsModal');
         nav.empty().html('<p>Caricamento...</p>'); content.html('');
         $('#modalTitle').text('Dettagli SID - ID Concessione: ' + idf24);
+        
+        // Utilizza la funzione postAction che gestisce già il reload e gli errori
         postAction('get_sid_details', { idf24: idf24 }, function(resp) {
             nav.empty(); content.empty();
             if (resp.error) { content.html(`<p class="error-message">${resp.error}</p>`); return; }
@@ -174,10 +164,12 @@ $(document).ready(function() {
                     it.data.forEach(rec => {
                         const card = $('<div class="record-card"></div>');
                         if(rec['tipo_oggetto'] === 'Zona Demaniale (ZD)') card.css({'border': '2px solid var(--color-primary)', 'box-shadow': '0 0 8px rgba(59, 130, 246, 0.4)'});
+                        
                         Object.entries(rec).forEach(([key, value]) => {
                             if (value !== null && String(value).trim() !== '') {
                                 let displayValue;
                                 const badges_blue = ['oggetto', 'scopi_descrizione', 'superficie_richiesta', 'descrizione'];
+                                
                                 if (badges_blue.includes(key)) {
                                     displayValue = `<span class="badge badge-blue">${value}</span>`;
                                 } else if (key === 'tipo_rimozione') {
@@ -195,6 +187,7 @@ $(document).ready(function() {
                     content.append(panel);
                 }
             });
+
             nav.off('click', '.nav-button').on('click', '.nav-button', function() {
                 if ($(this).is(':disabled')) return;
                 nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
@@ -202,7 +195,7 @@ $(document).ready(function() {
                 $('#modalSubtitle').text($(this).data('comment') || '');
             });
             nav.find('.nav-button:not(:disabled)').first().trigger('click');
-        });
+        }, 'json'); // Specifica json per evitare il reload automatico
     }
 
     // --- LOGICA MODALE MODIFICA (MATITA) ---
@@ -253,7 +246,7 @@ $(document).ready(function() {
                     form.append(accordionItem);
                 }
             });
-            
+
             $('.accordion-header').on('click', function() { $(this).parent('.accordion-item').toggleClass('open'); });
             $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
@@ -264,7 +257,7 @@ $(document).ready(function() {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
-        
+
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
@@ -326,7 +319,7 @@ $(document).ready(function() {
                 if (keepOpen) {
                     openEditModal(newIdf24);
                 } else {
-                    window.location.href = window.location.href;
+                    window.location.href = window.location.href; // Ricarica per vedere i dati aggiornati
                 }
             } else {
                 $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
@@ -347,6 +340,7 @@ $(document).ready(function() {
     }
 
     function makeDraggable(popup) {
+        // Usa jQuery UI se disponibile, altrimenti non fa nulla
         if (typeof $.ui !== 'undefined' && typeof $.ui.draggable !== 'undefined') {
              popup.draggable({ handle: ".help-title", containment: "window" });
         }
@@ -360,7 +354,7 @@ $(document).ready(function() {
         const dotRect = $anchor[0].getBoundingClientRect();
         let top = dotRect.bottom + 8;
         let left = dotRect.left + dotRect.width / 2;
-        
+
         $pop.css({
             position: 'fixed',
             top: `${top}px`,
@@ -392,7 +386,6 @@ $(document).ready(function() {
     $(document).on('click', function(e) { if (!$(e.target).closest('.help-pop, .help-dot').length) $('.help-pop').remove(); });
     $(document).on('click', '.help-close', () => $('.help-pop').remove());
     $(document).on('keydown', function(e) { if (e.key === 'Escape') $('.help-pop').remove(); });
-
 
     // --- Pagina Importa ---
     if (document.getElementById('uploaderCard')) {
@@ -427,7 +420,7 @@ $(document).ready(function() {
             }
         };
         zipFileInput.onchange = handleFileSelection;
-        
+
         function handleFileSelection() {
             if (zipFileInput.files.length) {
                 fileNameDisplay.textContent = zipFileInput.files[0].name;
@@ -490,7 +483,6 @@ $(document).ready(function() {
         }
 
         const iconMap = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle', error: 'fas fa-times-circle' };
-        
         function updateLog(status, message) {
             const item = document.createElement('div');
             item.className = `log-item status-${status}`;
