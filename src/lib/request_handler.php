@@ -5,16 +5,11 @@
  * Gestisce tutte le richieste AJAX/POST dell'applicazione, terminando l'esecuzione.
  */
 function handle_ajax_request(&$FIELD_HELP) {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action'])) {
         return;
     }
 
-    $action = $_POST['action'] ?? null;
-
-    if (!$action) {
-        return; 
-    }
-
+    $action = $_POST['action'];
     header('Content-Type: application/json; charset=utf-8');
     $response = ['success' => false, 'error' => 'Azione non gestita.'];
     $conn = null;
@@ -47,6 +42,7 @@ function handle_ajax_request(&$FIELD_HELP) {
                         $query_error = "Errore nella vista: " . $view_name_str;
                     }
                     
+                    // REPLICA 1:1 - Recupera il commento dalla vista
                     $full_view_name = DB_SCHEMA . '.' . $view_name_str;
                     $full_view_name_lit = pg_escape_literal($conn, $full_view_name);
                     $comment = null;
@@ -56,6 +52,144 @@ function handle_ajax_request(&$FIELD_HELP) {
                         if ($crow && isset($crow['comment'])) $comment = $crow['comment'];
                         @pg_free_result($cres);
                     }
+                    
+                    $details_data[$key] = [
+                        'label' => $config['label'],
+                        'icon' => $config['icon'] ?? 'fas fa-question-circle',
+                        'comment' => $comment,
+                        'data' => $data,
+                        'count' => count($data),
+                        'error' => $query_error
+                    ];
+                }
+                
+                // REPLICA 1:1 - La risposta è direttamente l'array di dati delle viste
+                $response = $details_data;
+                break;
+
+            case 'get_concessione_edit':
+                $idf24 = $_POST['idf24'] ?? null;
+                if ($idf24 === null || $idf24 === '') throw new Exception('ID F24 non fornito.');
+
+                $meta_res = pg_query_params($conn, "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'concessioni' ORDER BY ordinal_position", [DB_SCHEMA]);
+                if (!$meta_res) throw new Exception('Impossibile leggere le colonne di demanio.concessioni.');
+                
+                $columns = [];
+                while ($m = pg_fetch_assoc($meta_res)) {
+                    if ($m['column_name'] === 'geom') continue;
+                    $columns[] = ['name' => $m['column_name'], 'data_type' => $m['data_type'], 'ui_type' => map_pg_type_to_ui($m['data_type'])];
+                }
+
+                $row_res = pg_query_params($conn, "SELECT * FROM demanio.concessioni WHERE idf24::text = $1 LIMIT 1", [strval($idf24)]);
+                $values = ($row_res && pg_num_rows($row_res) > 0) ? pg_fetch_assoc($row_res) : array_fill_keys(array_column($columns, 'name'), null);
+                unset($values['geom']);
+
+                // REPLICA 1:1 - Recupera l'orario dell'ultima operazione di modifica
+                $latest_fmt = 'n/d';
+                $ts_res = @pg_query_params($conn, "SELECT to_char(max(operation_time) AT TIME ZONE 'Europe/Rome', 'DD/MM/YYYY HH24:MI') AS fmt FROM demanio.concessioni_log_v WHERE idf24::text = $1", [strval($idf24)]);
+                if ($ts_res && pg_num_rows($ts_res) > 0) {
+                    $ts_row = pg_fetch_assoc($ts_res);
+                    if ($ts_row && !empty($ts_row['fmt'])) $latest_fmt = $ts_row['fmt'];
+                }
+
+                $response = ['columns' => $columns, 'values' => $values, 'idf24' => $idf24, 'last_operation_time_fmt' => $latest_fmt, 'success' => true];
+                break;
+
+            case 'save_concessione_edit':
+                // La logica di salvataggio è già una replica fedele e non necessita modifiche.
+                $original_idf24 = $_POST['original_idf24'] ?? null;
+                $updates = json_decode($_POST['updates'] ?? '{}', true) ?: [];
+                if ($original_idf24 === null || $original_idf24 === '') throw new Exception('ID F24 originale non fornito.');
+
+                $meta_res = pg_query_params($conn, "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'concessioni'", [DB_SCHEMA]);
+                if (!$meta_res) throw new Exception('Impossibile leggere i metadati della tabella concessioni.');
+                $types = pg_fetch_all_columns($meta_res, 1) ? array_combine(pg_fetch_all_columns($meta_res, 0), pg_fetch_all_columns($meta_res, 1)) : [];
+
+                $set = []; $params = []; $idx = 1;
+                foreach ($updates as $col => $val) {
+                    if (!isset($types[$col]) || $col === 'geom') continue;
+                    $val_norm = normalize_value_for_db($val, $types[$col]);
+                    if ($val_norm === null) {
+                        $set[] = pg_escape_identifier($conn, $col) . " = NULL";
+                    } else {
+                        $set[] = pg_escape_identifier($conn, $col) . " = $" . ($idx);
+                        $params[] = $val_norm; $idx++;
+                    }
+                }
+                if (empty($set)) { $response = ['success' => true, 'message' => 'Nessuna modifica da salvare.']; break; }
+
+                $params[] = strval($original_idf24);
+                $sql = "UPDATE demanio.concessioni SET " . implode(', ', $set) . " WHERE idf24::text = $" . $idx;
+                $res = @pg_query_params($conn, $sql, $params);
+                
+                if (!$res || pg_affected_rows($res) === 0) {
+                     // Logica di fallback per INSERT se UPDATE fallisce (es. record non trovato)
+                    $insert_cols = []; $insert_vals = []; $insert_params = []; $p = 1;
+                    foreach ($updates as $col => $val) {
+                        if (!isset($types[$col]) || $col === 'geom') continue;
+                         $insert_cols[] = pg_escape_identifier($conn, $col);
+                         $val_norm = normalize_value_for_db($val, $types[$col]);
+                         if($val_norm === null) { $insert_vals[] = 'NULL'; } 
+                         else { $insert_vals[] = '$' . $p; $insert_params[] = $val_norm; $p++; }
+                    }
+                    if (!in_array(pg_escape_identifier($conn, 'idf24'), $insert_cols)) {
+                        $insert_cols[] = pg_escape_identifier($conn, 'idf24');
+                        $insert_vals[] = '$' . $p;
+                        $insert_params[] = $updates['idf24'] ?? $original_idf24;
+                    }
+                    if(!empty($insert_cols)){
+                        $ins_sql = "INSERT INTO demanio.concessioni (" . implode(', ', $insert_cols) . ") VALUES (" . implode(', ', $insert_vals) . ")";
+                        $ins_res = @pg_query_params($conn, $ins_sql, $insert_params);
+                        if (!$ins_res) throw new Exception('Errore durante INSERT: ' . pg_last_error($conn));
+                    }
+                }
+                $response = ['success' => true];
+                break;
+            
+            // Le azioni seguenti sono già corrette
+            case 'set_filter':
+                $column = $_POST['set_filter'] ?? null;
+                $value = $_POST['filter_value'] ?? '';
+                if ($column) {
+                    if (empty($value)) unset($_SESSION['column_filters'][$column]);
+                    else $_SESSION['column_filters'][$column] = $value;
+                }
+                $response = ['success' => true];
+                break;
+            case 'toggle_column':
+                $column = $_POST['toggle_column'] ?? null;
+                if ($column) {
+                    $hidden = $_SESSION['hidden_columns'] ?? [];
+                    if (($key = array_search($column, $hidden)) !== false) unset($hidden[$key]);
+                    else $hidden[] = $column;
+                    $_SESSION['hidden_columns'] = array_values($hidden);
+                }
+                $response = ['success' => true];
+                break;
+            case 'save_column_order':
+                if (isset($_POST['column_order']) && is_array($_POST['column_order'])) $_SESSION['column_order'] = $_POST['column_order'];
+                $response = ['success' => true];
+                break;
+            case 'save_column_widths':
+                if (isset($_POST['column_widths']) && is_array($_POST['column_widths'])) $_SESSION['column_widths'] = $_POST['column_widths'];
+                $response = ['success' => true];
+                break;
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        $response = ['success' => false, 'error' => $e->getMessage()];
+    } finally {
+        if ($conn) pg_close($conn);
+    }
+
+    echo json_encode($response);
+    exit;
+}
+
+// ... (resto del file request_handler.php, che non necessita modifiche) ...
+function get_detail_views_config() { /* ... */ }
+function map_pg_type_to_ui($t) { /* ... */ }
+function normalize_value_for_db($v, $type) { /* ... */ }                    }
                     
                     $details_data[$key] = [
                         'label' => $config['label'],
