@@ -25,6 +25,7 @@
             <button class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-content" id="editModalContent">
+            <div id="editAlert" style="display:none;"></div>
             <form id="editForm"></form>
         </div>
         <div class="modal-footer">
@@ -42,13 +43,6 @@
             <button class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-content" id="eventDetailsContent">
-            <p><strong>Importo:</strong> <span id="eventImporto"></span></p>
-            <p><strong>Stato:</strong> <span id="eventStato"></span></p>
-            <hr>
-            <div class="btn-group">
-                <button class="btn btn-primary"><i class="fas fa-money-bill"></i> Registra Pagamento</button>
-                <button class="btn"><i class="fas fa-paper-plane"></i> Invia Sollecito</button>
             </div>
-        </div>
     </div>
 </div>
