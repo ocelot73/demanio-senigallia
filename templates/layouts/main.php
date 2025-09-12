@@ -8,7 +8,6 @@
     <link rel="icon" href="https://www.comune.senigallia.an.it/wp-content/uploads/2024/07/Senigallia-Stemma.webp" type="image/webp">
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- CORREZIONE: Aggiunta dipendenza jQuery UI mancante -->
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -18,7 +17,7 @@
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
 
     <script>
-        // Applica il tema scuro prima del rendering per evitare flash
+         // Applica il tema scuro prima del rendering per evitare flash
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.classList.add('dark-theme');
@@ -59,7 +58,6 @@
         <?php require __DIR__ . '/../partials/header.php'; ?>
 
         <?php
-        // CORREZIONE: Il percorso delle viste è stato corretto. I file si trovano in /templates/, non in /templates/views/
         $view_path = __DIR__ . '/../' . ($pageConfig['view'] ?? 'concessioni') . '.php';
         if (file_exists($view_path)) {
             require $view_path;
