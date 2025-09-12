@@ -127,10 +127,17 @@ $(document).ready(function() {
         setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
     };
 
-    $('#detailsModal, #modalCloseBtn').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('detailsModal'); });
+    // --- [CODICE CORRETTO] --- Gestori di chiusura Modali
+    // Ascolta il click sull'overlay o sui pulsanti con la classe .modal-close-btn
+    $('#detailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('detailsModal'); });
     $('#detailsModal .modal-container').on('click', e => e.stopPropagation());
-    $('#editModal, #editCloseBtn, #editCancelBtn').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('editModal'); });
+
+    $('#editModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn') || e.target.id === 'editCancelBtn') closeModal('editModal'); });
     $('#editModal .modal-container').on('click', e => e.stopPropagation());
+
+    $('#eventDetailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('eventDetailsModal'); });
+    $('#eventDetailsModal .modal-container').on('click', e => e.stopPropagation());
+
 
     // --- LOGICA MODALE DETTAGLI (LENTE) ---
     $('#dataTable tbody').on('click', '.details-btn', function(e) { e.preventDefault(); e.stopPropagation(); openDetailsModal($(this).closest('tr').data('idf24')); });
@@ -188,54 +195,51 @@ $(document).ready(function() {
     function openEditModal(idf24) {
         if (!idf24) return;
         openModal('editModal');
-        $('#editForm').html('<p>Caricamento dati in corso...</p>');
+        $('#editForm').html('<div class="edit-grid-loading">Caricamento dati in corso...</div>');
         $('#editAlert').hide();
 
         $.post(window.location.href, { action: 'get_concessione_edit', idf24: idf24 }, function(r) {
             if (r.error) { $('#editForm').html(`<p class="error-message">${r.error}</p>`); return; }
             editOriginalData = r;
             const form = $('#editForm').empty();
-            
-            const groups = { general: { label: 'Dati Principali', fields: [] }, t: { label: 'Turistico-ricreative', fields: [] }, nt: { label: 'NON Turistiche-ricreative', fields: [] }, pac: { label: 'Pesca Acquacoltura Cantieristica', fields: [] } };
-            r.columns.forEach(col => {
-                const prefix = col.name.substring(0, col.name.indexOf('_'));
-                const fieldHtml = buildField(col);
-                const groupKey = ['t', 'nt', 'pac'].includes(prefix) ? prefix : 'general';
-                groups[groupKey].fields.push(fieldHtml);
-            });
+            const grid = $('<div class="edit-grid"></div>'); // Singola griglia come nell'originale
 
-            Object.values(groups).forEach((group, index) => {
-                if (group.fields.length > 0) form.append($('<div class="edit-grid"></div>').append(group.fields));
+            r.columns.forEach(col => {
+                const fieldHtml = buildField(col);
+                grid.append(fieldHtml);
             });
+            
+            form.append(grid);
             
             $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
+            // --- [CODICE CORRETTO] --- Visualizzazione data ultimo aggiornamento
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
         }, 'json');
     }
 
+    // --- [CODICE CORRETTO] --- Funzione buildField semplificata per stile originale
     function buildField(col) {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
 
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
-        const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
-        const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
+        const $label = $(`<label for="edit-field-${name}">${displayLabel}</label>`);
         if (help) $label.append(buildHelpDot(name, help));
         
         let $input;
         const hasValue = value !== null && String(value).trim() !== '';
 
         if (ui === 'boolean') {
-            $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''}><option value="" ${!hasValue ? 'selected' : ''}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
+            $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''}><option value="">(non impostato)</option><option value="true">Sì</option><option value="false">No</option></select>`);
             if (value === true || String(value).toLowerCase() === 't') $input.val('true');
             else if (value === false || String(value).toLowerCase() === 'f') $input.val('false');
         } else {
-            $input = $(`<input type="text" class="edit-input" id="edit-field-${name}" placeholder="NULL" ${isReadOnly ? 'readonly' : ''}>`);
+            $input = $(`<input type="text" class="edit-input" id="edit-field-${name}" placeholder="(valore nullo)" ${isReadOnly ? 'readonly' : ''}>`);
             if(hasValue) $input.val(value);
         }
-        $container.append($input).append($label);
-        $field.append($container);
+
+        $field.append($label).append($input);
         return $field;
     }
 
@@ -281,7 +285,6 @@ $(document).ready(function() {
         $('.help-pop').remove(); // Rimuovi popup esistenti
         const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
         $('body').append($pop);
-        // Position and show...
         const pos = $anchor.offset();
         $pop.css({ top: pos.top + $anchor.height() + 5, left: pos.left }).show().addClass('open');
     }
