@@ -1,6 +1,5 @@
 <?php
 // /src/controllers/concessioni_controller.php
-
 require_once __DIR__ . '/../models/concessione.php';
 
 /**
@@ -9,15 +8,15 @@ require_once __DIR__ . '/../models/concessione.php';
 function concessioni_data($conn, $pageConfig) {
     $table = $pageConfig['table'] ?? 'concessioni_unione_v';
 
-    // Toggle vista (Parziale/Completa) – senza redirect va benissimo
+    // Toggle vista (Parziale/Completa)
     if (isset($_GET['toggle_view'])) {
         $_SESSION['full_view'] = !($_SESSION['full_view'] ?? true);
     }
 
-    // Default: la pagina Concessioni parte in "Completa" (come l’originale)
+    // Default: avvio in vista completa
     $full_view = $_SESSION['full_view'] ?? true;
 
-    // Filtri e ordinamento
+    // Stato filtri e ordinamento
     $filters         = $_SESSION['column_filters'] ?? [];
     $page            = max(1, (int)($_GET['p'] ?? 1));
     $order_column    = $_GET['order'] ?? 'denominazione ditta concessionario';
