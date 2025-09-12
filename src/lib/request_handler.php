@@ -24,7 +24,6 @@ function handle_ajax_request(&$FIELD_HELP) {
                 
                 $detail_views = get_detail_views_config();
                 $details_data = [];
-                
                 foreach ($detail_views as $key => $config) {
                     $view_name_str = $config['view'];
                     $view_name_ident = pg_escape_identifier($conn, $view_name_str);
@@ -54,6 +53,11 @@ function handle_ajax_request(&$FIELD_HELP) {
                     
                     $details_data[$key] = [
                         'label' => $config['label'],
+                        // --- [INIZIO CORREZIONE]: Aggiunta di 'short_label' per fedeltà 1:1 ---
+                        // L'oggetto di risposta originale includeva questo campo, che poteva essere nullo.
+                        // La sua assenza poteva causare errori "undefined" nel frontend se una vista lo avesse definito.
+                        'short_label' => $config['short_label'] ?? null,
+                        // --- [FINE CORREZIONE] ---
                         'icon' => $config['icon'] ?? 'fas fa-question-circle',
                         'comment' => $comment,
                         'data' => $data,
@@ -68,19 +72,36 @@ function handle_ajax_request(&$FIELD_HELP) {
             case 'get_concessione_edit':
                 $idf24 = $_POST['idf24'] ?? null;
                 if ($idf24 === null || $idf24 === '') throw new Exception('ID F24 non fornito.');
-
+                
                 $meta_res = pg_query_params($conn, "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'concessioni' ORDER BY ordinal_position", [DB_SCHEMA]);
                 if (!$meta_res) throw new Exception('Impossibile leggere le colonne di demanio.concessioni.');
                 
                 $columns = [];
                 while ($m = pg_fetch_assoc($meta_res)) {
                     if ($m['column_name'] === 'geom') continue;
-                    $columns[] = ['name' => $m['column_name'], 'data_type' => $m['data_type'], 'ui_type' => map_pg_type_to_ui($m['data_type'])];
+                    // --- [INIZIO CORREZIONE]: Aggiunta di 'nullable' per fedeltà 1:1 ---
+                    // Il frontend originale poteva utilizzare questa informazione. La sua assenza era una divergenza.
+                    $columns[] = [
+                        'name' => $m['column_name'],
+                        'data_type' => $m['data_type'],
+                        'ui_type' => map_pg_type_to_ui($m['data_type']),
+                        'nullable' => strtolower($m['is_nullable'] ?? '') === 'yes'
+                    ];
+                    // --- [FINE CORREZIONE] ---
                 }
 
                 $row_res = pg_query_params($conn, "SELECT * FROM demanio.concessioni WHERE idf24::text = $1 LIMIT 1", [strval($idf24)]);
-                $values = ($row_res && pg_num_rows($row_res) > 0) ? pg_fetch_assoc($row_res) : array_fill_keys(array_column($columns, 'name'), null);
-                unset($values['geom']);
+                
+                $values = [];
+                if ($row_res && pg_num_rows($row_res) > 0) {
+                    $values = pg_fetch_assoc($row_res);
+                    unset($values['geom']);
+                } else {
+                    // Se non ci sono righe, crea un array di valori nulli, come nell'originale
+                    foreach ($columns as $c) {
+                        $values[$c['name']] = null;
+                    }
+                }
 
                 $latest_fmt = 'n/d';
                 $ts_res = @pg_query_params($conn, "SELECT to_char(max(operation_time) AT TIME ZONE 'Europe/Rome', 'DD/MM/YYYY HH24:MI') AS fmt FROM demanio.concessioni_log_v WHERE idf24::text = $1", [strval($idf24)]);
@@ -105,7 +126,8 @@ function handle_ajax_request(&$FIELD_HELP) {
                     $types[$row['column_name']] = $row['data_type'];
                 }
 
-                $set = []; $params = []; $idx = 1;
+                $set = [];
+                $params = []; $idx = 1;
                 foreach ($updates as $col => $val) {
                     if (!isset($types[$col]) || $col === 'geom') continue;
                     
@@ -129,22 +151,32 @@ function handle_ajax_request(&$FIELD_HELP) {
                 $sql = "UPDATE demanio.concessioni SET " . implode(', ', $set) . " WHERE idf24::text = $" . $idx;
                 $res = @pg_query_params($conn, $sql, $params);
                 
-                if (!$res || pg_affected_rows($res) === 0) {
-                    $insert_cols = []; $insert_vals = []; $insert_params = []; $p = 1;
+                $updated = ($res && pg_affected_rows($res) > 0);
+
+                if (!$updated) {
+                    // Tenta un INSERT se l'UPDATE non ha modificato righe, replicando la logica originale
+                    $insert_cols = [];
+                    $insert_vals = []; $insert_params = []; $p = 1;
+                    
+                    // Assicura che idf24 sia sempre presente
                     $all_insert_data = array_merge(['idf24' => $updates['idf24'] ?? $original_idf24], $updates);
 
                     foreach ($all_insert_data as $col => $val) {
                         if (!isset($types[$col]) || $col === 'geom') continue;
                         
-                        $insert_cols[] = pg_escape_identifier($conn, $col);
                         $val_norm = normalize_value_for_db($val, $types[$col]);
+                        $insert_cols[] = pg_escape_identifier($conn, $col);
                         
-                        $insert_vals[] = '$' . $p;
-                        $insert_params[] = $val_norm;
-                        $p++;
+                        if ($val_norm === null) {
+                            $insert_vals[] = 'NULL';
+                        } else {
+                            $insert_vals[] = '$' . $p;
+                            $insert_params[] = $val_norm;
+                            $p++;
+                        }
                     }
                     
-                    if(!empty($insert_cols)){
+                    if (count($insert_cols) > 0) {
                         $ins_sql = "INSERT INTO demanio.concessioni (" . implode(', ', $insert_cols) . ") VALUES (" . implode(', ', $insert_vals) . ")";
                         $ins_res = @pg_query_params($conn, $ins_sql, $insert_params);
                         if (!$ins_res) throw new Exception('Errore durante INSERT: ' . pg_last_error($conn));
@@ -186,14 +218,14 @@ function handle_ajax_request(&$FIELD_HELP) {
                 $response = ['success' => true];
                 break;
 
-            case 'save_column_order':
+            case 'save_column_order': // Rinominato da column_order a save_column_order per coerenza
                 if (isset($_POST['column_order']) && is_array($_POST['column_order'])) {
                     $_SESSION['column_order'] = $_POST['column_order'];
                 }
                 $response = ['success' => true];
                 break;
 
-            case 'save_column_widths':
+            case 'save_column_widths': // Rinominato da column_widths a save_column_widths
                 if (isset($_POST['column_widths']) && is_array($_POST['column_widths'])) {
                     $_SESSION['column_widths'] = $_POST['column_widths'];
                 }
@@ -215,6 +247,7 @@ function handle_ajax_request(&$FIELD_HELP) {
  * Funzioni helper per la gestione dei dati
  */
 function get_detail_views_config() {
+    // Questa configurazione è una replica esatta di quella originale
     return [
         'sintesi_atti' => ['label' => 'SINTESI ATTI', 'view' => 'sintesi_atti_mv', 'icon' => 'fas fa-file-invoice'],
         'atti_amministrativi' => ['label' => 'ATTI AMMINISTRATIVI', 'view' => 'mv_atti_amministrativi', 'icon' => 'fas fa-landmark'],
@@ -247,17 +280,18 @@ function map_pg_type_to_ui($t) {
 
 function normalize_value_for_db($v, $type) {
     $type = strtolower($type);
-    
+    // Un valore vuoto, nullo o la stringa 'NULL' deve diventare un vero NULL per il DB
     if ($v === '' || $v === null || (is_string($v) && strtoupper($v) === 'NULL')) return null;
-
+    
     if ($type === 'boolean' || $type === 'bool') {
         $v_lower = strtolower(trim((string)$v));
         return in_array($v_lower, ['1','t','true','vero','yes','y','on']) ? 't' : 'f';
     } elseif (in_array($type, ['int2','int4','int8','smallint','integer','bigint','numeric','decimal','real','double precision','float4','float8'])) {
+        // Logica di normalizzazione numerica identica all'originale
         $v_clean = str_replace(['.', ' '], ['', ''], (string)$v);
         $v_clean = str_replace(',', '.', $v_clean);
-        return is_numeric($v_clean) ? $v_clean : null;
+        return is_numeric($v_clean) ? $v_clean : null; // Restituisce null se non è un numero valido
     }
+    
     return $v;
 }
-
