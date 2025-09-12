@@ -58,9 +58,10 @@
             <tr><td colspan="<?= count($visible_columns) + 1 ?>" style="text-align:center; padding: 2rem;">Nessun dato trovato.</td></tr>
           <?php else:
             foreach ($records as $row):
-              $idf24_value = $row['idf24'] ?? '';
+                $row_class = ($currentPageKey === 'concessioni' && (!isset($row['verifica']) || $row['verifica'] === null || strtolower(trim($row['verifica'])) !== 'sì')) ? 'no-verifica' : '';
+                $idf24_value = $row['idf24'] ?? '';
           ?>
-              <tr data-idf24="<?= htmlspecialchars($idf24_value) ?>">
+              <tr class="<?= $row_class ?>" data-idf24="<?= htmlspecialchars($idf24_value) ?>">
                 <?php if (in_array('idf24', $columns)): ?>
                   <td style="text-align:center;">
                     <?php if ($idf24_value): ?>
@@ -74,13 +75,26 @@
                 <?php foreach ($columns as $col):
                   if (in_array($col, $hidden_columns)) continue;
                   $value = $row[$col] ?? '';
-                  // ... la formattazione del valore rimane invariata ...
+                  // Logica di formattazione copiata dall'originale
+                  if (($col === 'verifica' || $col === 'pec inviata') && strtolower(trim($value)) === 'sì') {
+                      $value = '<span class="icon-check">✓</span>';
+                  } elseif ($col === 'diff_scad' && trim($value) === 'diff.') {
+                      $value = '<span class="icon-cross">✗</span>';
+                  } elseif ($col === 'canone' && is_numeric($value) && $currentPageKey === 'calcolo_canoni') {
+                      $value = number_format((float)$value, 2, ',', '.');
+                  } elseif ($col === 'canone 2025' && is_numeric($value)) {
+                      $value = number_format((float)$value, 2, ',', '.');
+                  } elseif (is_numeric($value) && str_contains((string)$value, '.') && !in_array($col, ['canone 2025','canone'])) {
+                      $value = number_format((float)$value, 2, ',', '.');
+                  } else {
+                      $value = htmlspecialchars($value);
+                  }
                 ?>
-                  <td><?= htmlspecialchars($value) ?></td>
+                  <td><?= $value ?></td>
                 <?php endforeach; ?>
               </tr>
-            <?php endforeach;
-          endif; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </tbody>
     </table>
 </div>
