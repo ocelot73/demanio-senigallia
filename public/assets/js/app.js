@@ -7,12 +7,8 @@ $(document).ready(function() {
     const hiddenColumns = window.hiddenColumnsData || [];
 
     // --- Funzioni di Utilità ---
-    window.toggleColumn = function(n) {
-        $.post(window.location.href, { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json');
-    };
-    function applyFilter(n, v) {
-        $.post(window.location.href, { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json');
-    }
+    window.toggleColumn = function(n) { $.post(window.location.href, { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json'); };
+    function applyFilter(n, v) { $.post(window.location.href, { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json'); }
     function saveColumnWidths() {
         let w = {};
         $('#dataTable thead th[data-column]').each(function() {
@@ -22,17 +18,18 @@ $(document).ready(function() {
         $.post(window.location.href, { action: 'save_column_widths', column_widths: w });
     }
 
-    
     // --- Gestione UI (Sidebar, Tema, Modali) ---
     $('#sidebar-toggle').on('click', function() {
         const body = document.body;
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
     });
+
     $('.submenu-toggle').on('click', function(e) {
         e.preventDefault();
         $(this).parent('.has-submenu').toggleClass('open');
     });
+    
     const themeToggle = $('#theme-toggle');
     function setTheme(theme) {
         if (theme === 'dark') {
@@ -66,7 +63,7 @@ $(document).ready(function() {
         if ($(e.target).is('a, button, .row-actions i, .row-actions')) return;
         $(this).toggleClass('row-selected');
     });
-
+    
     function updateHiddenColumnsDisplay() {
         const bar = $('#hiddenColumnsBar'), list = $('#hiddenColumnsList');
         if (hiddenColumns.length > 0) {
@@ -87,6 +84,7 @@ $(document).ready(function() {
         startWidth = currentTh.width();
         $('body').css('cursor', 'col-resize'); e.preventDefault();
     });
+    
     $(document).on('mousemove', function(e) {
         if (isResizing) {
             const w = startWidth + (e.pageX - startX);
@@ -101,10 +99,11 @@ $(document).ready(function() {
     $('.filter-input').on('keypress', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); }
     });
-
+    
     function highlightHTML(html, regex) {
         return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
     }
+    
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim();
         $('#clearSearch').toggle(query.length > 0);
@@ -112,13 +111,12 @@ $(document).ready(function() {
         $('#dataTable tbody tr').each(function() {
             const $row = $(this);
             const text = $row.text();
-            
             const match = !regex || regex.test(text);
             $row.toggle(match);
             $row.find('td').each(function() {
                 const $cell = $(this);
                 if (typeof $cell.data('origHtml') === 'undefined') $cell.data('origHtml', $cell.html());
-                if (match && regex) $cell.html(highlightHTML($cell.data('origHtml'), regex));
+                if(match && regex) $cell.html(highlightHTML($cell.data('origHtml'), regex));
                 else $cell.html($cell.data('origHtml'));
             });
         });
@@ -133,7 +131,7 @@ $(document).ready(function() {
         if (currentWidthMode === 1) $table.addClass('width-mode-content');
         else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
     });
-
+    
     // --- LOGICA MODALE DETTAGLI (LENTE) ---
     $('#dataTable tbody').on('click', '.details-btn', function(e) { e.preventDefault(); e.stopPropagation(); openDetailsModal($(this).closest('tr').data('idf24')); });
     $('#dataTable tbody').on('dblclick', 'tr', function() { openDetailsModal($(this).data('idf24')); });
@@ -161,12 +159,10 @@ $(document).ready(function() {
                     it.data.forEach(rec => {
                         const card = $('<div class="record-card"></div>');
                         if(rec['tipo_oggetto'] === 'Zona Demaniale (ZD)') card.css({'border': '2px solid var(--color-primary)', 'box-shadow': '0 0 8px rgba(59, 130, 246, 0.4)'});
-                        
                         Object.entries(rec).forEach(([key, value]) => {
                             if (value !== null && String(value).trim() !== '') {
                                 let displayValue;
                                 const badges_blue = ['oggetto', 'scopi_descrizione', 'superficie_richiesta', 'descrizione'];
-
                                 if (badges_blue.includes(key)) {
                                     displayValue = `<span class="badge badge-blue">${value}</span>`;
                                 } else if (key === 'tipo_rimozione') {
@@ -184,7 +180,6 @@ $(document).ready(function() {
                     content.append(panel);
                 }
             });
-
             nav.off('click', '.nav-button').on('click', '.nav-button', function() {
                 if ($(this).is(':disabled')) return;
                 nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
@@ -209,7 +204,6 @@ $(document).ready(function() {
             if (r.error) { $('#editAlert').text(r.error).show(); return; }
             editOriginalData = r;
             const form = $('#editForm').empty();
-            
             const groups = {
                 general: { label: 'Dati Principali', fields: [] },
                 t: { label: 'Turistico-ricreative', fields: [] },
@@ -253,9 +247,7 @@ $(document).ready(function() {
                 }
             });
 
-            $('.accordion-header').on('click', function() {
-                $(this).parent('.accordion-item').toggleClass('open');
-            });
+            $('.accordion-header').on('click', function() { $(this).parent('.accordion-item').toggleClass('open'); });
             $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
         }, 'json');
@@ -265,7 +257,6 @@ $(document).ready(function() {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
-
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
@@ -273,7 +264,6 @@ $(document).ready(function() {
         
         let $input;
         const hasValue = value !== null && String(value).trim() !== '';
-
         if (ui === 'boolean') {
             $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''} required><option value="" disabled ${hasValue ? '' : 'selected'}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
             if (value === true || String(value).toLowerCase() === 't') $input.val('true');
@@ -336,44 +326,30 @@ $(document).ready(function() {
         return $dot;
     }
     
-    // CORREZIONE: Funzione `makeDraggable` e `showHelpPopup` sostituite con la versione robusta di `index.php`
     function makeDraggable(popup) {
         const dragHandle = popup.find('.help-title');
         let isDragging = false, initialMouseX, initialMouseY, initialPopupX, initialPopupY;
 
         dragHandle.on('mousedown', function(e) {
-            e.preventDefault();
-            isDragging = true;
-            initialMouseX = e.clientX;
-            initialMouseY = e.clientY;
+            e.preventDefault(); isDragging = true;
+            initialMouseX = e.clientX; initialMouseY = e.clientY;
             const rect = popup[0].getBoundingClientRect();
-            initialPopupX = rect.left;
-            initialPopupY = rect.top;
-
+            initialPopupX = rect.left; initialPopupY = rect.top;
             popup.css('transform', 'none');
 
             $(document).on('mousemove.drag', function(e) {
                 if (isDragging) {
-                    const deltaX = e.clientX - initialMouseX;
-                    const deltaY = e.clientY - initialMouseY;
-                    let newX = initialPopupX + deltaX;
-                    let newY = initialPopupY + deltaY;
-
-                    const popRect = popup[0].getBoundingClientRect();
-                    const margin = 5;
+                    const deltaX = e.clientX - initialMouseX, deltaY = e.clientY - initialMouseY;
+                    let newX = initialPopupX + deltaX, newY = initialPopupY + deltaY;
+                    const popRect = popup[0].getBoundingClientRect(), margin = 5;
                     if (newX < margin) newX = margin;
                     if (newY < margin) newY = margin;
                     if (newX + popRect.width > window.innerWidth - margin) newX = window.innerWidth - popRect.width - margin;
                     if (newY + popRect.height > window.innerHeight - margin) newY = window.innerHeight - popRect.height - margin;
-
                     popup.css({ left: newX + 'px', top: newY + 'px' });
                 }
             });
-
-            $(document).on('mouseup.drag', function() {
-                isDragging = false;
-                $(document).off('mousemove.drag mouseup.drag');
-            });
+            $(document).on('mouseup.drag', function() { isDragging = false; $(document).off('mousemove.drag mouseup.drag'); });
         });
     }
 
@@ -386,36 +362,18 @@ $(document).ready(function() {
         const dotRect = $anchor[0].getBoundingClientRect();
         let top = dotRect.bottom + 8;
         let left = dotRect.left + dotRect.width / 2;
-
-        $pop.css({
-            position: 'fixed',
-            top: `${top}px`,
-            left: `${left}px`,
-            transform: 'translateX(-50%)'
-        });
-
+        $pop.css({ position: 'fixed', top: `${top}px`, left: `${left}px`, transform: 'translateX(-50%)' });
+        
         setTimeout(() => {
-            const popRect = $pop[0].getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const viewportWidth = window.innerWidth;
-            const margin = 10;
-
-            if (popRect.height >= viewportHeight - (margin * 2)) {
-                top = margin;
-            } else if (popRect.bottom > viewportHeight - margin) {
-                top = dotRect.top - popRect.height - 8;
-            }
-
+            const popRect = $pop[0].getBoundingClientRect(), viewportHeight = window.innerHeight, viewportWidth = window.innerWidth, margin = 10;
+            if (popRect.height >= viewportHeight - (margin * 2)) top = margin;
+            else if (popRect.bottom > viewportHeight - margin) top = dotRect.top - popRect.height - 8;
             if (top < margin) top = margin;
-
             if (popRect.left < margin) {
-                left = margin;
-                $pop.css({ transform: 'translateX(0)' });
+                left = margin; $pop.css({ transform: 'translateX(0)' });
             } else if (popRect.right > viewportWidth - margin) {
-                left = viewportWidth - margin;
-                $pop.css({ transform: 'translateX(-100%)' });
+                left = viewportWidth - margin; $pop.css({ transform: 'translateX(-100%)' });
             }
-
             $pop.css({ top: `${top}px`, left: `${left}px` }).addClass('open');
         }, 10);
     }
@@ -457,7 +415,7 @@ $(document).ready(function() {
             }
         };
         zipFileInput.onchange = handleFileSelection;
-
+        
         function handleFileSelection() {
             if (zipFileInput.files.length) {
                 fileNameDisplay.textContent = zipFileInput.files[0].name;
@@ -483,7 +441,7 @@ $(document).ready(function() {
                 data: formData,
                 processData: false,
                 contentType: false,
-                dataType: 'json', // Attendiamo una risposta JSON
+                dataType: 'json',
                 xhr: function() {
                     const xhr = new window.XMLHttpRequest();
                     xhr.upload.addEventListener('progress', function(evt) {
@@ -506,7 +464,7 @@ $(document).ready(function() {
                 }
             });
         };
-
+        
         function startSseProcessing(processId) {
             const url = new URL(window.APP_URL + '/index.php');
             url.searchParams.set('page', 'importa');
