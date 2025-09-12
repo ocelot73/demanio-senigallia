@@ -61,3 +61,83 @@ function get_all_records($conn, $table, $order_col, $order_dir, $filters) {
     $result = db_query($conn, $sql, $params);
     return pg_fetch_all($result) ?: [];
 }
+
+/**
+ * Restituisce un singolo record dalla vista/tabella per IDF24 (usata nella pagina Dettagli).
+ */
+function get_view_record_by_id($conn, $table, $idf24) {
+    $sql = 'SELECT * FROM ' . pg_escape_identifier($conn, $table) . ' WHERE idf24::text = $1 LIMIT 1';
+    $res = db_query($conn, $sql, [strval($idf24)]);
+    return pg_fetch_assoc($res) ?: null;
+}
+
+/**
+ * Restituisce i dettagli dal SID (modello specifico per la modale Dettagli).
+ */
+function get_sid_details_model($conn, $idf24) {
+    $sql = "
+        SELECT
+            COALESCE(denominazione, denominazione_concessionario) AS denominazione,
+            comune, localita, 'Licenza' AS tipo_atto, idf24, num_sid, stato_conc_sid
+        FROM concessioni_unione_v
+        WHERE idf24::text = $1
+        LIMIT 1
+    ";
+    $res = db_query($conn, $sql, [strval($idf24)]);
+    return pg_fetch_assoc($res) ?: null;
+}
+
+/**
+ * Costruisce la WHERE in base ai filtri di colonna.
+ * - Gestisce input vuoti, * e % come wildcard, e confronto case-insensitive (ILIKE).
+ * - Converte "sì/si" e "no" per i campi boolean/semaforici (es. verifica).
+ * - Per valori numerici consente prefissi >, <, >=, <=, =.
+ * - Per date in formato gg/mm/aaaa fa un confronto testuale (coerente con l’originale).
+ */
+function build_filter_where_clause($conn, array $filters) {
+    $clauses = [];
+    $params  = [];
+    foreach ($filters as $col => $raw) {
+        $val = trim((string)$raw);
+        if ($val === '') continue;
+
+        $identifier = pg_escape_identifier($conn, $col);
+
+        // Boolean/semafori "si/sì" o "no"
+        $low = mb_strtolower($val, 'UTF-8');
+        if (in_array($low, ['si','sì','sí','sì','no'], true)) {
+            // Confronto testuale sul valore (molte viste espongono 'si'/'no')
+            $params[] = $low;
+            $clauses[] = "LOWER(CAST($identifier AS TEXT)) = $" . count($params);
+            continue;
+        }
+
+        // Confronto numerico con operatori
+        if (preg_match('/^(<=|>=|=|<|>)\s*([0-9]+(?:[.,][0-9]+)?)$/', $val, $m)) {
+            $op = $m[1];
+            $num = str_replace(',', '.', $m[2]);
+            $params[] = $num;
+            // Cast prudente a NUMERIC dove possibile, altrimenti confronto testuale
+            $clauses[] = "CASE WHEN $identifier ~ '^[0-9]+(\\.[0-9]+)?$' THEN ($identifier::NUMERIC $op $" . count($params) . ")
+                                ELSE (CAST($identifier AS TEXT) ILIKE $" . count($params) . ") END";
+            continue;
+        }
+
+        // Date semplici gg/mm/aaaa: confronto testuale
+        if (preg_match('/^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$/', $val)) {
+            $params[] = $val;
+            $clauses[] = "CAST($identifier AS TEXT) ILIKE $" . count($params);
+            continue;
+        }
+
+        // Wildcard * -> %  (ILIKE case-insensitive)
+        $like = str_replace('*', '%', $val);
+        if (strpos($like, '%') === false && strpos($like, '_') === false) {
+            $like = '%' . $like . '%';
+        }
+        $params[] = $like;
+        $clauses[] = "CAST($identifier AS TEXT) ILIKE $" . count($params);
+    }
+
+    return [implode(' AND ', $clauses), $params];
+}
