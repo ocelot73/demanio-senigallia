@@ -57,4 +57,7 @@ function concessioni_data($conn, $pageConfig) {
         'current_page'    => $page,
         'order_column'    => $order_column,
         'order_direction' => $order_direction,
-        'filters'
+        'filters'         => $filters,
+        'full_view'       => $full_view,
+    ];
+}
