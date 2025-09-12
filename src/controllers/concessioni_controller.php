@@ -8,28 +8,46 @@ require_once __DIR__ . '/../models/concessione.php';
 function concessioni_data($conn, $pageConfig) {
     $table = $pageConfig['table'] ?? 'concessioni_unione_v';
 
-    // Toggle vista (Parziale/Completa) - la gestione del redirect è in index.php
-    // qui leggiamo solo lo stato per decidere quale query eseguire.
+    // Gestione anno per la vista 'calcolo_canoni' (dall'originale)
+    if ($pageConfig['label'] === 'Calcolo Canoni') {
+        $selected_year = $_GET['anno'] ?? $_SESSION['selected_year'] ?? date('Y');
+        $_SESSION['selected_year'] = $selected_year;
+        $escaped_year = pg_escape_string($conn, (string)$selected_year);
+        @pg_query($conn, "SELECT set_config('demanio.anno', '$escaped_year', false)");
+    }
+    
+    // Toggle vista (Parziale/Completa)
     $full_view = $_SESSION['full_view'] ?? true;
 
     // Stato filtri e ordinamento
     $filters         = $_SESSION['column_filters'] ?? [];
-    $filters_active  = !empty($filters); // Aggiunto per il pulsante "Azzera filtri"
+    $filters_active  = !empty($filters);
     $page            = max(1, (int)($_GET['p'] ?? 1));
     $order_column    = $_GET['order'] ?? 'denominazione ditta concessionario';
     $order_direction = $_GET['dir']   ?? 'ASC';
 
-    // Elenco colonne disponibili dalla tabella/vista
-    $columns = get_table_columns($conn, $table);
+    // Colonne
+    $all_columns = get_table_columns($conn, $table);
 
-    // Se la colonna richiesta non esiste nella vista corrente, ripiega sulla prima disponibile
-    if (empty($columns)) {
-        $order_column = ''; // nessuna colonna
-    } elseif (!in_array($order_column, $columns, true)) {
+    // Gestione ordinamento colonne salvato in sessione (dall'originale)
+    if (isset($_SESSION['column_order'])) {
+        $saved_order = $_SESSION['column_order'];
+        $columns = array_values(array_intersect($saved_order, $all_columns));
+        foreach ($all_columns as $col) {
+            if (!in_array($col, $columns)) {
+                $columns[] = $col;
+            }
+        }
+    } else {
+        $columns = $all_columns;
+    }
+
+    // Se la colonna richiesta non esiste, ripiega sulla prima disponibile
+    if (empty($columns) || !in_array($order_column, $columns, true)) {
         $order_column = $columns[0] ?? '';
     }
 
-    // Calcolo colonne visibili (tutte meno quelle nascoste a sessione)
+    // Colonne visibili
     $hidden_columns  = $_SESSION['hidden_columns'] ?? [];
     $visible_columns = array_values(array_diff($columns, $hidden_columns));
 
@@ -48,6 +66,7 @@ function concessioni_data($conn, $pageConfig) {
     return [
         'records'         => $records,
         'columns'         => $columns,
+        'all_columns'     => $all_columns, // Aggiunto per riferimento
         'visible_columns' => $visible_columns,
         'hidden_columns'  => $hidden_columns,
         'total_pages'     => $total_pages,
@@ -56,6 +75,6 @@ function concessioni_data($conn, $pageConfig) {
         'order_direction' => $order_direction,
         'filters'         => $filters,
         'full_view'       => $full_view,
-        'filters_active'  => $filters_active, // <-- Variabile aggiunta
+        'filters_active'  => $filters_active,
     ];
 }
