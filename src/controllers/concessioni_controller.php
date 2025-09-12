@@ -8,16 +8,13 @@ require_once __DIR__ . '/../models/concessione.php';
 function concessioni_data($conn, $pageConfig) {
     $table = $pageConfig['table'] ?? 'concessioni_unione_v';
 
-    // Toggle vista (Parziale/Completa)
-    if (isset($_GET['toggle_view'])) {
-        $_SESSION['full_view'] = !($_SESSION['full_view'] ?? true);
-    }
-
-    // Default: avvio in vista completa
+    // Toggle vista (Parziale/Completa) - la gestione del redirect è in index.php
+    // qui leggiamo solo lo stato per decidere quale query eseguire.
     $full_view = $_SESSION['full_view'] ?? true;
 
     // Stato filtri e ordinamento
     $filters         = $_SESSION['column_filters'] ?? [];
+    $filters_active  = !empty($filters); // Aggiunto per il pulsante "Azzera filtri"
     $page            = max(1, (int)($_GET['p'] ?? 1));
     $order_column    = $_GET['order'] ?? 'denominazione ditta concessionario';
     $order_direction = $_GET['dir']   ?? 'ASC';
@@ -29,7 +26,7 @@ function concessioni_data($conn, $pageConfig) {
     if (empty($columns)) {
         $order_column = ''; // nessuna colonna
     } elseif (!in_array($order_column, $columns, true)) {
-        $order_column = $columns[0];
+        $order_column = $columns[0] ?? '';
     }
 
     // Calcolo colonne visibili (tutte meno quelle nascoste a sessione)
@@ -45,13 +42,13 @@ function concessioni_data($conn, $pageConfig) {
     } else {
         $records       = get_paginated_records($conn, $table, $page, $order_column, $order_direction, $filters);
         $total_records = get_records_count($conn, $table, $filters);
-        $total_pages   = ($total_records > 0) ? (int)ceil($total_records / RECORDS_PER_PAGE) : 1;
+        $total_pages   = ($total_records > 0) ? (int)ceil($total_records / (int)RECORDS_PER_PAGE) : 1;
     }
 
     return [
         'records'         => $records,
         'columns'         => $columns,
-        'visible_columns' => $visible_columns, // <-- ora disponibile per la vista
+        'visible_columns' => $visible_columns,
         'hidden_columns'  => $hidden_columns,
         'total_pages'     => $total_pages,
         'current_page'    => $page,
@@ -59,5 +56,6 @@ function concessioni_data($conn, $pageConfig) {
         'order_direction' => $order_direction,
         'filters'         => $filters,
         'full_view'       => $full_view,
+        'filters_active'  => $filters_active, // <-- Variabile aggiunta
     ];
 }
