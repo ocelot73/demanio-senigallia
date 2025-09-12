@@ -22,6 +22,20 @@ function concessioni_data($conn, $pageConfig) {
     $order_column    = $_GET['order'] ?? 'denominazione ditta concessionario';
     $order_direction = $_GET['dir']   ?? 'ASC';
 
+    // Elenco colonne disponibili dalla tabella/vista
+    $columns = get_table_columns($conn, $table);
+
+    // Se la colonna richiesta non esiste nella vista corrente, ripiega sulla prima disponibile
+    if (empty($columns)) {
+        $order_column = ''; // nessuna colonna
+    } elseif (!in_array($order_column, $columns, true)) {
+        $order_column = $columns[0];
+    }
+
+    // Calcolo colonne visibili (tutte meno quelle nascoste a sessione)
+    $hidden_columns  = $_SESSION['hidden_columns'] ?? [];
+    $visible_columns = array_values(array_diff($columns, $hidden_columns));
+
     // Dati
     if ($full_view) {
         $records       = get_all_records($conn, $table, $order_column, $order_direction, $filters);
@@ -34,17 +48,13 @@ function concessioni_data($conn, $pageConfig) {
         $total_pages   = ($total_records > 0) ? (int)ceil($total_records / RECORDS_PER_PAGE) : 1;
     }
 
-    $columns = get_table_columns($conn, $table);
-
     return [
         'records'         => $records,
         'columns'         => $columns,
+        'visible_columns' => $visible_columns, // <-- ora disponibile per la vista
+        'hidden_columns'  => $hidden_columns,
         'total_pages'     => $total_pages,
         'current_page'    => $page,
         'order_column'    => $order_column,
         'order_direction' => $order_direction,
-        'filters'         => $filters,
-        'hidden_columns'  => $_SESSION['hidden_columns'] ?? [],
-        'full_view'       => $full_view,
-    ];
-}
+        'filters'
