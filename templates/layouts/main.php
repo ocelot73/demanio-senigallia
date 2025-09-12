@@ -32,7 +32,7 @@
 </head>
 <body>
     <script>
-        // CORREZIONE: Logica per la gestione della sidebar, identica all'originale.
+        // Logica per la gestione della sidebar, identica all'originale.
         // Eseguita subito dopo l'apertura del body per evitare "flickering".
         (function() {
             const isFirstLoad = <?= json_encode($_SESSION['first_load_after_login'] ?? false) ?>;
@@ -64,9 +64,8 @@
         <?php require __DIR__ . '/../partials/header.php'; ?>
 
         <?php
-        // CORREZIONE: Il percorso per includere le viste è stato corretto.
-        // I file delle viste (es. concessioni.php) si trovano in /templates/, non in /templates/views/.
-        $view_path = __DIR__ . '/../' . ($pageConfig['view'] ?? 'concessioni') . '.php';
+        // Il percorso corretto per le viste è la cartella /templates/views/
+        $view_path = __DIR__ . '/../views/' . ($pageConfig['view'] ?? 'concessioni') . '.php';
         if (file_exists($view_path)) {
             require $view_path;
         } else {
