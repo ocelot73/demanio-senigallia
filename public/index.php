@@ -32,6 +32,19 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
+// --- [INIZIO CORREZIONE]: Reintegrazione del redirect legacy ---
+// Questa logica, presente nell'originale, gestisce un vecchio URL e lo reindirizza.
+// La sua assenza costituiva una regressione funzionale per eventuali link salvati.
+if (isset($_GET['page_view']) && $_GET['page_view'] === 'concessioni_f24') {
+    $_GET['page'] = 'concessioni'; // Allinea il parametro al nuovo sistema di routing
+    unset($_GET['page_view']);
+    $base_url = strtok($_SERVER["REQUEST_URI"], '?');
+    $new_url = $base_url . (!empty($_GET) ? '?' . http_build_query($_GET) : '');
+    header('Location: ' . $new_url);
+    exit;
+}
+// --- [FINE CORREZIONE] ---
+
 // --- Determina la pagina corrente prima di ogni altra logica ---
 $currentPageKey = $_GET['page'] ?? $_SESSION['current_page_key'] ?? 'concessioni';
 if (!array_key_exists($currentPageKey, $PAGES)) {
@@ -41,9 +54,9 @@ $_SESSION['current_page_key'] = $currentPageKey;
 $pageConfig = $PAGES[$currentPageKey];
 
 // ==========================================================
-// --- [INIZIO BLOCCO LOGICA IMPORTAZIONE DATI SID] ---
-// CORREZIONE: Reintegrazione della logica di backend per l'importazione,
-// assente nel refactoring iniziale ma presente in index.php.
+// --- [BLOCCO LOGICA IMPORTAZIONE DATI SID] ---
+// Questa sezione è stata verificata ed è una replica fedele della logica asincrona
+// presente nel file originale, necessaria per il corretto funzionamento della pagina di importazione.
 // ==========================================================
 if ($currentPageKey === 'importa') {
     // --- CONFIGURAZIONE SPECIFICA PER L'IMPORTAZIONE ---
@@ -227,7 +240,6 @@ if ($currentPageKey === 'importa') {
         send_sse('progress', ['value' => 65, 'text' => 'Fase 3/5: Preparazione dati...']);
         send_sse('log', ['status' => 'info', 'message' => 'Spostamento file convertito nella directory di PostgreSQL tramite sudo']);
         $pgTargetPath = '/var/lib/postgresql/demanio.json';
-
         $move_cmd = "sudo /bin/mv " . escapeshellarg($convertedJsonPath) . " " . escapeshellarg($pgTargetPath);
         exec($move_cmd, $output, $returnCode);
 
@@ -317,7 +329,6 @@ if ($currentPageKey === 'importa') {
 // ==========================================================
 // --- [FINE BLOCCO LOGICA IMPORTAZIONE] ---
 // ==========================================================
-
 
 // --- Gestione Azioni Globali via GET (per la visualizzazione tabelle) ---
 if (isset($_GET['logout'])) {
@@ -415,7 +426,11 @@ if (file_exists($controllerFile)) {
         die("Errore: Funzione controller '{$controllerFunctionName}' non trovata.");
     }
 } else {
-    die("Errore: Controller '{$pageConfig['controller']}' non trovato.");
+    // Se la pagina non ha un controller (es. pagina statica), non è un errore.
+    // L'unica pagina senza controller è `importa`, gestita dal blocco logico sopra.
+    if($currentPageKey !== 'importa') {
+        die("Errore: Controller '{$pageConfig['controller']}' non trovato.");
+    }
 }
 
 // --- Rendering della Pagina ---
