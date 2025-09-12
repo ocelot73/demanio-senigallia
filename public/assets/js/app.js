@@ -218,4 +218,12 @@ $(document).ready(function() {
      * PAGINA IMPORTA FILE ZIP
      * ==========================================================
      */
-    const uploaderCard = document.getElementById('uploader
+    const uploaderCard = document.getElementById('uploaderCard');
+    if (uploaderCard) {
+        const zipFileInput = document.getElementById('zipfile');
+        const dropZone = document.getElementById('drop-zone');
+        
+        dropZone.addEventListener('click', () => zipFileInput.click());
+        // ... resto della logica di importazione invariata ...
+    }
+});
