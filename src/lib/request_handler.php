@@ -131,29 +131,20 @@ function handle_ajax_request(&$FIELD_HELP) {
                 
                 if (!$res || pg_affected_rows($res) === 0) {
                     $insert_cols = []; $insert_vals = []; $insert_params = []; $p = 1;
-                    
-                    $insert_cols[] = pg_escape_identifier($conn, 'idf24');
-                    $insert_vals[] = '$' . $p;
-                    $insert_params[] = $updates['idf24'] ?? $original_idf24;
-                    $p++;
+                    $all_insert_data = array_merge(['idf24' => $updates['idf24'] ?? $original_idf24], $updates);
 
-                    foreach ($updates as $col => $val) {
-                        if (!isset($types[$col]) || $col === 'geom' || $col === 'idf24') continue;
+                    foreach ($all_insert_data as $col => $val) {
+                        if (!isset($types[$col]) || $col === 'geom') continue;
                         
+                        $insert_cols[] = pg_escape_identifier($conn, $col);
                         $val_norm = normalize_value_for_db($val, $types[$col]);
                         
-                        if ($val_norm === null) {
-                            $insert_cols[] = pg_escape_identifier($conn, $col);
-                            $insert_vals[] = 'NULL';
-                        } else {
-                            $insert_cols[] = pg_escape_identifier($conn, $col);
-                            $insert_vals[] = '$' . $p;
-                            $insert_params[] = $val_norm;
-                            $p++;
-                        }
+                        $insert_vals[] = '$' . $p;
+                        $insert_params[] = $val_norm;
+                        $p++;
                     }
                     
-                    if(count($insert_cols) > 1){ 
+                    if(!empty($insert_cols)){
                         $ins_sql = "INSERT INTO demanio.concessioni (" . implode(', ', $insert_cols) . ") VALUES (" . implode(', ', $insert_vals) . ")";
                         $ins_res = @pg_query_params($conn, $ins_sql, $insert_params);
                         if (!$ins_res) throw new Exception('Errore durante INSERT: ' . pg_last_error($conn));
