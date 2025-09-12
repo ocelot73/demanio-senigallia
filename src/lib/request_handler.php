@@ -11,16 +11,8 @@ function handle_ajax_request(&$FIELD_HELP) {
 
     $action = $_POST['action'] ?? null;
 
-    // Se 'action' non è definito, proviamo a dedurlo da altri parametri POST per retrocompatibilità
     if (!$action) {
-        if (isset($_POST['set_filter']))    $action = 'set_filter';
-        if (isset($_POST['toggle_column'])) $action = 'toggle_column';
-        if (isset($_POST['column_order']))  $action = 'save_column_order';
-        if (isset($_POST['column_widths'])) $action = 'save_column_widths';
-    }
-
-    if (!$action) {
-        return; // Nessuna azione POST gestita
+        return; 
     }
 
     header('Content-Type: application/json; charset=utf-8');
@@ -75,7 +67,18 @@ function handle_ajax_request(&$FIELD_HELP) {
                         'error' => $query_error
                     ];
                 }
-                $response = $details_data; // La risposta diretta sono i dati, non un oggetto 'success'
+
+                // CORREZIONE: Aggiunta la data dell'ultimo aggiornamento delle viste
+                $last_update_time = 'N/D';
+                $ts_res = @pg_query($conn, "SELECT pg_stat_get_last_analyze_time('demanio.sintesi_atti_mv'::regclass) AS last_update");
+                if($ts_res && pg_num_rows($ts_res) > 0){
+                    $ts_row = pg_fetch_assoc($ts_res);
+                    if($ts_row && !empty($ts_row['last_update'])){
+                        $last_update_time = date('d/m/Y H:i:s', strtotime($ts_row['last_update']));
+                    }
+                }
+                
+                $response = ['views' => $details_data, 'last_update_time' => $last_update_time];
                 break;
 
             case 'get_concessione_edit':
@@ -107,7 +110,7 @@ function handle_ajax_request(&$FIELD_HELP) {
                     if ($ts_row && !empty($ts_row['fmt'])) $latest_fmt = $ts_row['fmt'];
                 }
 
-                $response = ['columns' => $columns, 'values' => $values, 'idf24' => $idf24, 'last_operation_time_fmt' => $latest_fmt];
+                $response = ['columns' => $columns, 'values' => $values, 'idf24' => $idf24, 'last_operation_time_fmt' => $latest_fmt, 'success' => true];
                 break;
 
             case 'save_concessione_edit':
@@ -142,7 +145,6 @@ function handle_ajax_request(&$FIELD_HELP) {
                 $res = @pg_query_params($conn, $sql, $params);
                 
                 if (!$res || pg_affected_rows($res) === 0) {
-                     // L'update potrebbe fallire se non c'è la riga (es. nuovo record). Tentiamo un INSERT.
                     $insert_cols = []; $insert_vals = []; $insert_params = []; $p = 1;
                     foreach ($updates as $col => $val) {
                         if (!isset($types[$col]) || $col === 'geom') continue;
@@ -156,7 +158,6 @@ function handle_ajax_request(&$FIELD_HELP) {
                             $p++;
                          }
                     }
-                     // Assicurati che idf24 sia presente
                     if (!in_array(pg_escape_identifier($conn, 'idf24'), $insert_cols)) {
                         $insert_cols[] = pg_escape_identifier($conn, 'idf24');
                         $insert_vals[] = '$' . $p;
@@ -236,7 +237,6 @@ function handle_ajax_request(&$FIELD_HELP) {
  * Funzioni helper per la gestione dei dati (precedentemente inline)
  */
 function get_detail_views_config() {
-    // Questa configurazione era globale nel file originale
     return [
         'sintesi_atti' => ['label' => 'SINTESI ATTI', 'view' => 'sintesi_atti_mv', 'icon' => 'fas fa-file-invoice'],
         'atti_amministrativi' => ['label' => 'ATTI AMMINISTRATIVI', 'view' => 'mv_atti_amministrativi', 'icon' => 'fas fa-landmark'],
