@@ -1,4 +1,16 @@
 <?php // /templates/concessioni.php ?>
+<?php
+// Salvaguardie: se il controller non avesse passato le variabili, calcolale qui.
+$all_columns    = isset($columns) && is_array($columns) ? $columns : [];
+$hidden_columns = isset($hidden_columns) && is_array($hidden_columns) ? $hidden_columns : [];
+$visible_columns = isset($visible_columns) && is_array($visible_columns)
+    ? $visible_columns
+    : array_values(array_diff($all_columns, $hidden_columns));
+
+$order_column    = $order_column    ?? (isset($all_columns[0]) ? $all_columns[0] : '');
+$order_direction = $order_direction ?? 'ASC';
+$current_page    = $current_page    ?? 1;
+?>
 <div class="card-container">
     <div id="hiddenColumnsBar" class="hidden-columns-bar" style="display:none">
         <span>Colonne nascoste:</span>
@@ -15,7 +27,10 @@
                         <th data-column="<?= htmlspecialchars($col) ?>">
                             <div class="header-content">
                                 <span class="col-title"><?= htmlspecialchars($col) ?></span>
-                                <?php $nextDir = ($order_column === $col && strtoupper($order_direction) === 'ASC') ? 'DESC' : 'ASC'; ?>
+                                <?php
+                                  $isAsc   = (strtoupper($order_direction) === 'ASC');
+                                  $nextDir = ($order_column === $col && $isAsc) ? 'DESC' : 'ASC';
+                                ?>
                                 <a class="sort-btn <?= $order_column === $col ? 'active' : '' ?>"
                                    href="<?= htmlspecialchars(build_current_url(['order' => $col, 'dir' => $nextDir])) ?>"
                                    title="Ordina">
@@ -34,9 +49,9 @@
             <tbody>
             <?php
             $rowNumber = 1 + (($current_page - 1) * RECORDS_PER_PAGE);
-            foreach ($records as $row):
+            foreach (($records ?? []) as $row):
                 $verVal = strtolower(trim((string)($row['verifica'] ?? $row['verifica '] ?? '')));
-                $isVerified = in_array($verVal, ['si','sì','sí','sì']);
+                $isVerified = in_array($verVal, ['si','sì','sí','sì'], true);
                 $trClass = $isVerified ? '' : 'no-verifica';
             ?>
                 <tr class="<?= $trClass ?>">
