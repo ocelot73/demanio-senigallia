@@ -10,6 +10,7 @@
         </div>
         <ul class="sidebar-nav">
             <?php
+            // Logica per raggruppare le voci di menu sotto "Canoni"
             $canoni_group_rendered = false;
             $canoni_pages = $MENU_GROUPS['Canoni']['pages'] ?? [];
             $is_canoni_page_active = in_array($currentPageKey, $canoni_pages);
@@ -17,31 +18,34 @@
             foreach ($PAGES as $key => $config):
                 $is_in_canoni_group = in_array($key, $canoni_pages);
                 
-                if ($is_in_canoni_group) {
-                    if (!$canoni_group_rendered) {
-                        ?>
-                        <li class="has-submenu <?= $is_canoni_page_active ? 'open' : '' ?>">
-                            <a href="#" class="submenu-toggle">
-                                <i class="<?= htmlspecialchars($MENU_GROUPS['Canoni']['icon']) ?>"></i>
-                                <span>Canoni</span>
-                                <i class="fas fa-chevron-right submenu-arrow"></i>
-                            </a>
-                            <ul class="submenu">
-                                <?php foreach($canoni_pages as $canoni_key):
-                                    $canoni_config = $PAGES[$canoni_key]; ?>
-                                <li>
-                                    <a href="<?= build_current_url(['page' => $canoni_key], APP_URL . '/index.php') ?>" class="<?= $canoni_key === $currentPageKey ? 'active' : '' ?>" title="<?= htmlspecialchars($canoni_config['title']) ?>">
-                                        <i class="<?= htmlspecialchars($canoni_config['icon']) ?>"></i>
-                                        <span><?= htmlspecialchars($canoni_config['label']) ?></span>
-                                    </a>
-                                </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </li>
-                        <?php
-                        $canoni_group_rendered = true;
-                    }
-                } else {
+                // Se la pagina appartiene al gruppo "Canoni" e il gruppo non è ancora stato renderizzato
+                if ($is_in_canoni_group && !$canoni_group_rendered) {
+                    ?>
+                    <li class="has-submenu <?= $is_canoni_page_active ? 'open' : '' ?>">
+                        <a href="#" class="submenu-toggle">
+                            <i class="<?= htmlspecialchars($MENU_GROUPS['Canoni']['icon']) ?>"></i>
+                            <span>Canoni</span>
+                            <i class="fas fa-chevron-right submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu">
+                            <?php foreach($canoni_pages as $canoni_key):
+                                $canoni_config = $PAGES[$canoni_key]; ?>
+                            <li>
+                                <a href="<?= build_current_url(['page' => $canoni_key], APP_URL . '/index.php') ?>" 
+                                   class="<?= $canoni_key === $currentPageKey ? 'active' : '' ?>" 
+                                   title="<?= htmlspecialchars($canoni_config['title']) ?>">
+                                    <i class="<?= htmlspecialchars($canoni_config['icon']) ?>"></i>
+                                    <span><?= htmlspecialchars($canoni_config['label']) ?></span>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </li>
+                    <?php
+                    $canoni_group_rendered = true; // Segna il gruppo come renderizzato
+                } 
+                // Renderizza le altre pagine che non sono nel gruppo "Canoni"
+                elseif (!$is_in_canoni_group) {
                     ?>
                     <li>
                         <a href="<?= isset($config['url']) ? htmlspecialchars($config['url']) : build_current_url(['page' => $key], APP_URL . '/index.php') ?>"
@@ -65,42 +69,9 @@
                 <span class="link-text">Tema Scuro</span>
             </button>
         </div>
-        <a href="<?= build_current_url(['logout' => 1], APP_URL . '/index.php') ?>"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
-    </div>
-</nav>
-                                        <span><?= htmlspecialchars($canoni_config['label']) ?></span>
-                                    </a>
-                                </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </li>
-                        <?php
-                        $canoni_group_rendered = true;
-                    }
-                } else {
-                    ?>
-                    <li>
-                        <a href="<?= isset($config['url']) ? htmlspecialchars($config['url']) : APP_URL . '/index.php?page=' . $key ?>"
-                           class="<?= $key === $currentPageKey ? 'active' : '' ?>"
-                           title="<?= htmlspecialchars($config['title']) ?>"
-                           <?= isset($config['url']) ? 'target="_blank" rel="noopener noreferrer"' : '' ?>>
-                            <i class="<?= htmlspecialchars($config['icon']) ?>"></i>
-                            <span><?= htmlspecialchars($config['label']) ?></span>
-                        </a>
-                    </li>
-                    <?php
-                }
-            endforeach;
-            ?>
-        </ul>
-    </div>
-    <div class="sidebar-footer">
-        <div class="theme-switcher">
-            <button id="theme-toggle" title="Cambia Tema">
-                <i class="fas fa-moon"></i>
-                <span class="link-text">Tema Scuro</span>
-            </button>
-        </div>
-        <a href="<?= APP_URL ?>/index.php?logout=1"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
+        <a href="<?= build_current_url(['logout' => 1], APP_URL . '/index.php') ?>">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="link-text">Logout</span>
+        </a>
     </div>
 </nav>
