@@ -5,9 +5,8 @@ require_once __DIR__ . '/../models/concessione.php';
 /**
  * Prepara i dati per la pagina "Concessioni".
  */
-function concessioni_data($conn, $pageConfig) {
+function concessioni_controller_data($conn, $pageConfig) {
     $table = $pageConfig['table'] ?? 'concessioni_unione_v';
-
     // Gestione anno per la vista 'calcolo_canoni' (dall'originale)
     if ($pageConfig['label'] === 'Calcolo Canoni') {
         $selected_year = $_GET['anno'] ?? $_SESSION['selected_year'] ?? date('Y');
@@ -18,14 +17,12 @@ function concessioni_data($conn, $pageConfig) {
     
     // Toggle vista (Parziale/Completa)
     $full_view = $_SESSION['full_view'] ?? true;
-
     // Stato filtri e ordinamento
     $filters         = $_SESSION['column_filters'] ?? [];
     $filters_active  = !empty($filters);
     $page            = max(1, (int)($_GET['p'] ?? 1));
     $order_column    = $_GET['order'] ?? 'denominazione ditta concessionario';
     $order_direction = $_GET['dir']   ?? 'ASC';
-
     // Colonne
     $all_columns = get_table_columns($conn, $table);
 
@@ -76,5 +73,6 @@ function concessioni_data($conn, $pageConfig) {
         'filters'         => $filters,
         'full_view'       => $full_view,
         'filters_active'  => $filters_active,
+        'total_records'   => $total_records
     ];
 }
