@@ -127,12 +127,10 @@ $(document).ready(function() {
         setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
     };
 
-    // --- [CODICE CORRETTO] --- Gestori di chiusura Modali (TUTTI I CASI)
     $('#detailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('detailsModal'); });
     $('#editModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn') || e.target.id === 'editCancelBtn') closeModal('editModal'); });
     $('#eventDetailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('eventDetailsModal'); });
 
-    // Previene la chiusura se si clicca all'interno del container
     $('.modal-container').on('click', e => e.stopPropagation());
 
     // --- LOGICA MODALE DETTAGLI (LENTE) ---
@@ -166,7 +164,6 @@ $(document).ready(function() {
                         
                         Object.entries(rec).forEach(([key, value]) => {
                             if (value !== null && String(value).trim() !== '') {
-                                // --- [CODICE CORRETTO] --- Logica per i Badge
                                 let displayValue;
                                 const badges_blue = ['oggetto', 'scopi_descrizione', 'superficie_richiesta', 'descrizione'];
 
@@ -198,7 +195,7 @@ $(document).ready(function() {
         }, 'json');
     }
 
-    // --- LOGICA MODALE MODIFICA (MATITA) - RIPRISTINATA FEDELMENTE ALL'ORIGINALE ---
+    // --- LOGICA MODALE MODIFICA (MATITA) ---
     let editOriginalData = {};
     $('#dataTable tbody').on('click', '.edit-btn', function(e) { e.preventDefault(); e.stopPropagation(); openEditModal($(this).closest('tr').data('idf24')); });
 
@@ -213,7 +210,6 @@ $(document).ready(function() {
             editOriginalData = r;
             const form = $('#editForm').empty();
             
-            // --- [CODICE CORRETTO] --- Raggruppamento per Accordion
             const groups = {
                 general: { label: 'Dati Principali', fields: [] },
                 t: { label: 'Turistico-ricreative', fields: [] },
@@ -231,7 +227,6 @@ $(document).ready(function() {
                 }
             });
 
-            // Controlla se i gruppi hanno campi con valori per evidenziare l'header
             Object.values(groups).forEach(group => {
                 let hasValue = false;
                 for (const fieldHtml of group.fields) {
@@ -244,7 +239,6 @@ $(document).ready(function() {
                 if (hasValue) group.hasActiveFields = true;
             });
 
-            // Costruisce gli accordion
             Object.values(groups).forEach((group, index) => {
                 if (group.fields.length > 0) {
                     const isOpen = index === 0;
@@ -267,7 +261,6 @@ $(document).ready(function() {
         }, 'json');
     }
     
-    // --- [CODICE CORRETTO] --- Funzione buildField con Help Popups
     function buildField(col) {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
@@ -313,7 +306,7 @@ $(document).ready(function() {
             return;
         }
 
-        $.post(window.location.href, { action: 'save_concessione_edit', original_idf24: editOriginalData.idf24, updates: JSON.stringify(updates) }, function(r) {
+        $.post(window.location.href, { action:'save_concessione_edit', original_idf24: editOriginalData.idf24, updates: JSON.stringify(updates) }, function(r) {
             if (r.success) {
                 if (keepOpen) openEditModal(updates['idf24'] || editOriginalData.idf24);
                 else location.reload();
@@ -326,7 +319,7 @@ $(document).ready(function() {
     $('#editSaveContinueBtn').on('click', () => saveEdits(true));
     $('#editSaveExitBtn').on('click', () => saveEdits(false));
 
-    // --- [CODICE CORRETTO] --- Gestione Help Popups (incluso drag & drop)
+    // --- Gestione Help Popups ---
     function buildHelpDot(name, help) {
         const title = help.title || name.replace(/_/g, ' ');
         const content = help.content || '';
@@ -356,11 +349,122 @@ $(document).ready(function() {
     $(document).on('click', '.help-close', () => $('.help-pop').remove());
 
 
-    // --- Pagina Importa (invariata) ---
+    // --- Pagina Importa ---
     const uploaderCard = document.getElementById('uploaderCard');
     if (uploaderCard) {
-        const zipFileInput = document.getElementById('zipfile'), dropZone = document.getElementById('drop-zone');
-        dropZone.onclick = () => zipFileInput.click();
-        // ... (resto della logica di importazione) ...
+        const progressCard = document.getElementById('progressCard'),
+              zipFileInput = document.getElementById('zipfile'),
+              dropZone = document.getElementById('drop-zone'),
+              fileInfo = document.getElementById('fileInfo'),
+              fileNameDisplay = document.getElementById('fileName'),
+              uploadButton = document.getElementById('uploadButton'),
+              progressText = document.getElementById('progress-text'),
+              logContainer = document.getElementById('logContainer'),
+              finalActions = document.getElementById('finalActions'),
+              progressBar = document.getElementById('progress-bar');
+        let eventSource = null;
+
+        const browseLink = dropZone.querySelector('.browse-link');
+        dropZone.onclick = (e) => {
+            if (e.target === browseLink) e.preventDefault();
+            zipFileInput.click();
+        };
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length && (e.dataTransfer.files[0].type.includes('zip') || e.dataTransfer.files[0].name.endsWith('.zip'))) {
+                zipFileInput.files = e.dataTransfer.files;
+                handleFileSelection();
+            } else {
+                alert('Per favore, seleziona un file in formato ZIP.');
+            }
+        };
+        zipFileInput.onchange = handleFileSelection;
+
+        function handleFileSelection() {
+            if (zipFileInput.files.length) {
+                fileNameDisplay.textContent = zipFileInput.files[0].name;
+                fileInfo.style.display = 'flex';
+                uploadButton.disabled = false;
+            }
+        }
+
+        document.getElementById('uploadForm').onsubmit = (e) => {
+            e.preventDefault();
+            if (!zipFileInput.files.length) return;
+
+            uploaderCard.style.display = 'none';
+            progressCard.style.display = 'block';
+            updateLog('info', 'Preparazione e avvio caricamento file...');
+
+            const formData = new FormData();
+            formData.append('zipfile', zipFileInput.files[0]);
+
+            $.ajax({
+                url: window.location.href,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    const xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(evt) {
+                        if (evt.lengthComputable) {
+                            const percentComplete = (evt.loaded / evt.total) * 5;
+                            updateProgress(percentComplete, `Fase 1/5: Caricamento file... ${Math.round((evt.loaded / evt.total) * 100)}%`);
+                        }
+                    }, false);
+                    return xhr;
+                },
+                success: function(result) {
+                    if (result.success) {
+                        startSseProcessing(result.processId);
+                    } else {
+                        finishProcess('error', result.error || 'Errore sconosciuto durante il caricamento');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    finishProcess('error', `Errore del server: ${jqXHR.status} ${errorThrown}`);
+                }
+            });
+        };
+
+        function startSseProcessing(processId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('action', 'process');
+            url.searchParams.set('id', processId);
+            eventSource = new EventSource(url.toString());
+
+            eventSource.addEventListener('log', e => { const data = JSON.parse(e.data); updateLog(data.status, data.message); });
+            eventSource.addEventListener('progress', e => { const data = JSON.parse(e.data); updateProgress(data.value, data.text); });
+            eventSource.addEventListener('close', e => { const data = JSON.parse(e.data); finishProcess(data.status, data.message); });
+            eventSource.onerror = () => { finishProcess('error', 'Connessione con il server interrotta.'); };
+        }
+
+        const iconMap = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle', error: 'fas fa-times-circle' };
+        function updateLog(status, message) {
+            const item = document.createElement('div');
+            item.className = `log-item status-${status}`;
+            item.innerHTML = `<i class="icon ${iconMap[status] || ''}"></i><span class="message">${message}</span>`;
+            logContainer.appendChild(item);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateProgress(value, text) {
+            progressBar.style.width = `${Math.min(value, 100)}%`;
+            progressText.textContent = text;
+        }
+
+        function finishProcess(status, message) {
+            if (eventSource) { eventSource.close(); eventSource = null; }
+            updateProgress(100, "Completato");
+            updateLog(status, `<strong>${message}</strong>`);
+            progressBar.classList.remove('error', 'warning');
+            if (status === 'error') progressBar.classList.add('error');
+            if (status === 'warning') progressBar.classList.add('warning');
+            finalActions.style.display = 'block';
+        }
     }
 });
