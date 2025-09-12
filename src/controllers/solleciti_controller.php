@@ -4,6 +4,6 @@
 /**
  * Prepara i dati per la pagina dello scadenzario.
  */
-function scadenzario_data($conn, $pageConfig) {
+function solleciti_controller_data($conn, $pageConfig) {
     return []; // La pagina è gestita da FullCalendar via AJAX
 }
