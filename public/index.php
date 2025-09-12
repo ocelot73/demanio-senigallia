@@ -13,9 +13,6 @@ require_once __DIR__ . '/../src/lib/database.php';
 require_once __DIR__ . '/../src/lib/template.php';
 require_once __DIR__ . '/../src/lib/request_handler.php';
 
-// 2) Gestione richieste AJAX / SSE (ritorna immediatamente se intercettata)
-handle_ajax_request($FIELD_HELP, $DETAIL_VIEWS); // <-- AGGIUNTA $DETAIL_VIEWS
-
 // 3) Determinazione pagina corrente
 $currentPageKey = $_GET['page'] ?? ($_SESSION['current_page_key'] ?? 'concessioni');
 if (!array_key_exists($currentPageKey, $PAGES)) {
