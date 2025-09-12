@@ -43,6 +43,7 @@
             <button class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-content" id="eventDetailsContent">
-            </div>
+            <!-- Contenuto popolato da JS -->
+        </div>
     </div>
 </div>
