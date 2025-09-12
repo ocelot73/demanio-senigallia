@@ -9,7 +9,6 @@ session_start();
 // 1) Bootstrap
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/pages.php';
-require_once __DIR__ . '/../config/detail_views.php'; // <-- AGGIUNTA
 require_once __DIR__ . '/../src/lib/database.php';
 require_once __DIR__ . '/../src/lib/template.php';
 require_once __DIR__ . '/../src/lib/request_handler.php';
