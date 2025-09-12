@@ -64,8 +64,9 @@
         <?php require __DIR__ . '/../partials/header.php'; ?>
 
         <?php
-        // Il percorso corretto per le viste è la cartella /templates/views/
-        $view_path = __DIR__ . '/../views/' . ($pageConfig['view'] ?? 'concessioni') . '.php';
+        // CORREZIONE: Il percorso per le viste era errato. I file come 'concessioni.php'
+        // si trovano direttamente in /templates/, non in una sottocartella /views/.
+        $view_path = __DIR__ . '/../' . ($pageConfig['view'] ?? 'concessioni') . '.php';
         if (file_exists($view_path)) {
             require $view_path;
         } else {
