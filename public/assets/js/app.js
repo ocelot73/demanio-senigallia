@@ -1,11 +1,28 @@
 /* /public/assets/js/app.js */
+
 $(document).ready(function() {
 
     // --- Config Globale (da PHP) ---
     const FIELD_HELP = window.FIELD_HELP_DATA || {};
     const hiddenColumns = window.hiddenColumnsData || [];
 
-    // --- Gestione UI (Sidebar, Tema) ---
+    // --- Funzioni di Utilità ---
+    window.toggleColumn = function(n) {
+        $.post(window.location.href, { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json');
+    };
+    function applyFilter(n, v) {
+        $.post(window.location.href, { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json');
+    }
+    function saveColumnWidths() {
+        let w = {};
+        $('#dataTable thead th[data-column]').each(function() {
+            const n = $(this).data('column');
+            if (n) w[n] = $(this).outerWidth();
+        });
+        $.post(window.location.href, { action: 'save_column_widths', column_widths: w });
+    }
+
+    // --- Gestione UI (Sidebar, Tema, Modali) ---
     $('#sidebar-toggle').on('click', function() {
         const body = document.body;
         body.classList.toggle('sidebar-collapsed');
@@ -32,22 +49,20 @@ $(document).ready(function() {
     setTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
     themeToggle.on('click', () => setTheme(document.documentElement.classList.contains('dark-theme') ? 'light' : 'dark'));
 
-    // --- Gestione Tabella ---
-    window.toggleColumn = function(n) {
-        $.post(window.location.href, { action: 'toggle_column', toggle_column: n }, r => { if(r.success) location.reload(); }, 'json');
+    const openModal = (modalId) => $(`#${modalId}`).css('display', 'flex').delay(10).queue(function(next) { $(this).addClass('open'); next(); });
+    const closeModal = (modalId) => {
+        const $modal = $(`#${modalId}`);
+        $modal.removeClass('open');
+        setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
     };
-    function applyFilter(n, v) {
-        $.post(window.location.href, { action: 'set_filter', set_filter: n, filter_value: v }, r => { if(r.success) location.reload(); }, 'json');
-    }
-    function saveColumnWidths() {
-        let w = {};
-        $('#dataTable thead th[data-column]').each(function() {
-            const n = $(this).data('column');
-            if (n) w[n] = $(this).outerWidth();
-        });
-        $.post(window.location.href, { action: 'save_column_widths', column_widths: w });
-    }
 
+    $('#detailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('detailsModal'); });
+    $('#editModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn') || e.target.id === 'editCancelBtn') closeModal('editModal'); });
+    $('#eventDetailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('eventDetailsModal'); });
+    $('.modal-container').on('click', e => e.stopPropagation());
+
+
+    // --- Gestione Tabella ---
     $('#dataTable tbody').on('click', 'tr', function(e) {
         if ($(e.target).is('a, button, .row-actions i, .row-actions')) return;
         $(this).toggleClass('row-selected');
@@ -87,7 +102,7 @@ $(document).ready(function() {
     $('.filter-input').on('keypress', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); }
     });
-
+    
     function highlightHTML(html, regex) {
         return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
     }
@@ -119,20 +134,6 @@ $(document).ready(function() {
         else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
     });
 
-    // --- Gestione Modali ---
-    const openModal = (modalId) => $(`#${modalId}`).css('display', 'flex').delay(10).queue(function(next) { $(this).addClass('open'); next(); });
-    const closeModal = (modalId) => {
-        const $modal = $(`#${modalId}`);
-        $modal.removeClass('open');
-        setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
-    };
-
-    $('#detailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('detailsModal'); });
-    $('#editModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn') || e.target.id === 'editCancelBtn') closeModal('editModal'); });
-    $('#eventDetailsModal').on('click', function(e) { if (e.target === this || $(e.target).hasClass('modal-close-btn')) closeModal('eventDetailsModal'); });
-
-    $('.modal-container').on('click', e => e.stopPropagation());
-
     // --- LOGICA MODALE DETTAGLI (LENTE) ---
     $('#dataTable tbody').on('click', '.details-btn', function(e) { e.preventDefault(); e.stopPropagation(); openDetailsModal($(this).closest('tr').data('idf24')); });
     $('#dataTable tbody').on('dblclick', 'tr', function() { openDetailsModal($(this).data('idf24')); });
@@ -143,7 +144,6 @@ $(document).ready(function() {
         openModal('detailsModal');
         nav.empty().html('<p>Caricamento...</p>'); content.html('');
         $('#modalTitle').text('Dettagli SID - ID Concessione: ' + idf24);
-        
         $.post(window.location.href, { action: 'get_sid_details', idf24: idf24 }, function(resp) {
             nav.empty(); content.empty();
             if (resp.error) { content.html(`<p class="error-message">${resp.error}</p>`); return; }
@@ -184,7 +184,6 @@ $(document).ready(function() {
                     content.append(panel);
                 }
             });
-
             nav.off('click', '.nav-button').on('click', '.nav-button', function() {
                 if ($(this).is(':disabled')) return;
                 nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
@@ -233,7 +232,8 @@ $(document).ready(function() {
                     const fieldName = $(fieldHtml).data('name');
                     const value = editOriginalData.values[fieldName];
                     if (value !== null && String(value).trim() !== '') {
-                        hasValue = true; break;
+                        hasValue = true;
+                        break;
                     }
                 }
                 if (hasValue) group.hasActiveFields = true;
@@ -251,11 +251,10 @@ $(document).ready(function() {
                     form.append(accordionItem);
                 }
             });
-
+            
             $('.accordion-header').on('click', function() {
                 $(this).parent('.accordion-item').toggleClass('open');
             });
-            
             $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
         }, 'json');
@@ -265,7 +264,7 @@ $(document).ready(function() {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
-
+        
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
@@ -296,11 +295,15 @@ $(document).ready(function() {
             const original = editOriginalData.values[name] ?? null;
             const $input = $(this).find('.edit-input');
             if ($input.is('[readonly],[disabled]')) return;
+            
             const current = $input.val();
-            let originalString = original === null ? '' : (typeof original === 'boolean' ? (original ? 'true' : 'false') : String(original));
-            if (current !== originalString) updates[name] = current;
-        });
+            let originalString = original === null ? null : (typeof original === 'boolean' ? (original ? 'true' : 'false') : String(original));
 
+            if (current !== originalString) {
+                 updates[name] = current;
+            }
+        });
+        
         if (Object.keys(updates).length === 0) {
             if (!keepOpen) closeModal('editModal');
             return;
@@ -308,8 +311,12 @@ $(document).ready(function() {
 
         $.post(window.location.href, { action:'save_concessione_edit', original_idf24: editOriginalData.idf24, updates: JSON.stringify(updates) }, function(r) {
             if (r.success) {
-                if (keepOpen) openEditModal(updates['idf24'] || editOriginalData.idf24);
-                else location.reload();
+                const newIdf24 = updates['idf24'] || editOriginalData.idf24;
+                if (keepOpen) {
+                    openEditModal(newIdf24);
+                } else {
+                    location.reload();
+                }
             } else {
                 $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
             }
@@ -329,10 +336,17 @@ $(document).ready(function() {
     }
     
     function makeDraggable(popup) {
-        const dragHandle = popup.find('.help-title'); let isDragging=false, iMX, iMY, iPX, iPY;
+        const dragHandle = popup.find('.help-title');
+        let isDragging=false, iMX, iMY, iPX, iPY;
         dragHandle.on('mousedown', function(e) {
-            e.preventDefault(); isDragging=true; iMX=e.clientX; iMY=e.clientY; const r=popup[0].getBoundingClientRect(); iPX=r.left; iPY=r.top; popup.css('transform','none');
-            $(document).on('mousemove.drag', function(e) { if(isDragging) { let nX=iPX+(e.clientX-iMX), nY=iPY+(e.clientY-iMY); popup.css({left:nX+'px',top:nY+'px'}); } });
+            e.preventDefault(); isDragging=true; iMX=e.clientX; iMY=e.clientY; const r=popup[0].getBoundingClientRect(); iPX=r.left; iPY=r.top;
+            popup.css({ 'transform': 'none', 'position': 'fixed' }); // Ensure fixed position for dragging
+            $(document).on('mousemove.drag', function(e) {
+                if(isDragging) {
+                    let nX=iPX+(e.clientX-iMX), nY=iPY+(e.clientY-iMY);
+                    popup.css({left:nX+'px',top:nY+'px'});
+                }
+            });
             $(document).on('mouseup.drag', function() { isDragging=false; $(document).off('mousemove.drag mouseup.drag'); });
         });
     }
@@ -342,12 +356,19 @@ $(document).ready(function() {
         const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
         $('body').append($pop);
         makeDraggable($pop);
-        const pos = $anchor.offset();
-        $pop.css({ top: pos.top + $anchor.outerHeight() + 5, left: pos.left + ($anchor.outerWidth()/2) - ($pop.outerWidth()/2) }).show().addClass('open');
+        
+        const pos = $anchor[0].getBoundingClientRect();
+        $pop.css({
+            position: 'fixed',
+            top: pos.bottom + 5 + 'px',
+            left: pos.left + (pos.width / 2) + 'px',
+            transform: 'translateX(-50%)'
+        }).show().addClass('open');
     }
+    
     $(document).on('click', function(e) { if (!$(e.target).closest('.help-pop, .help-dot').length) $('.help-pop').remove(); });
     $(document).on('click', '.help-close', () => $('.help-pop').remove());
-
+    $(document).on('keydown', function(e) { if(e.key === 'Escape') $('.help-pop').remove(); });
 
     // --- Pagina Importa ---
     const uploaderCard = document.getElementById('uploaderCard');
@@ -382,7 +403,7 @@ $(document).ready(function() {
             }
         };
         zipFileInput.onchange = handleFileSelection;
-
+        
         function handleFileSelection() {
             if (zipFileInput.files.length) {
                 fileNameDisplay.textContent = zipFileInput.files[0].name;
@@ -403,7 +424,7 @@ $(document).ready(function() {
             formData.append('zipfile', zipFileInput.files[0]);
 
             $.ajax({
-                url: window.location.href,
+                url: window.APP_URL + '/index.php?page=importa', // Correct URL for the request
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -412,7 +433,7 @@ $(document).ready(function() {
                     const xhr = new window.XMLHttpRequest();
                     xhr.upload.addEventListener('progress', function(evt) {
                         if (evt.lengthComputable) {
-                            const percentComplete = (evt.loaded / evt.total) * 5;
+                            const percentComplete = (evt.loaded / evt.total) * 5; // Upload is 5% of the total process
                             updateProgress(percentComplete, `Fase 1/5: Caricamento file... ${Math.round((evt.loaded / evt.total) * 100)}%`);
                         }
                     }, false);
@@ -432,7 +453,8 @@ $(document).ready(function() {
         };
 
         function startSseProcessing(processId) {
-            const url = new URL(window.location.href);
+            const url = new URL(window.APP_URL + '/index.php');
+            url.searchParams.set('page', 'importa');
             url.searchParams.set('action', 'process');
             url.searchParams.set('id', processId);
             eventSource = new EventSource(url.toString());
