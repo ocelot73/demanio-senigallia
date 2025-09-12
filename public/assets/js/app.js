@@ -50,7 +50,7 @@ $(document).ready(function() {
         localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
     });
     $('.submenu-toggle').on('click', function(e) { e.preventDefault(); $(this).parent('.has-submenu').toggleClass('open'); });
-    
+
     const themeToggle = $('#theme-toggle');
     function setTheme(theme) {
         if (theme === 'dark') {
@@ -90,7 +90,7 @@ $(document).ready(function() {
             stop: function() { updateColumnOrder(); }
         }).disableSelection();
     }
-    
+
     $('#dataTable thead th[data-column]').each(function() {
         const colName = $(this).data('column');
         if (savedColumnWidths[colName]) {
@@ -98,7 +98,7 @@ $(document).ready(function() {
         }
     });
     $('#dataTable tbody').on('click', 'tr', function(e) { if (!$(e.target).is('a, button, .row-actions i, .row-actions')) $(this).toggleClass('row-selected'); });
-    
+
     function updateHiddenColumnsDisplay() {
         const bar = $('#hiddenColumnsBar'), list = $('#hiddenColumnsList');
         if (hiddenColumns.length > 0) {
@@ -115,11 +115,11 @@ $(document).ready(function() {
     });
     $(document).on('mousemove', function(e) { if (isResizing) { const w = startWidth + (e.pageX - startX); if (w > 30) currentTh.width(w); } })
              .on('mouseup', function() { if (isResizing) { isResizing = false; currentTh = null; $('body').css('cursor', ''); saveColumnWidths(); } });
-    
+
     $('.filter-input').on('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-    
+
     function highlightHTML(html, regex) { return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join(''); }
-    
+
     $('#globalSearch').on('input', function() {
         const query = $(this).val().trim(); $('#clearSearch').toggle(query.length > 0);
         const regex = query.length > 0 ? new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
@@ -248,7 +248,7 @@ $(document).ready(function() {
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
         });
     }
-    
+
     function buildField(col) {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
@@ -257,17 +257,17 @@ $(document).ready(function() {
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
         if (help) $label.append(buildHelpDot(name, help));
-        
+
         let $input;
         const hasValue = value !== null && String(value).trim() !== '';
+
         if (ui === 'boolean') {
             $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''}><option value="NULL" ${!hasValue ? 'selected' : ''}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
             if (value === true || String(value).toLowerCase() === 't') $input.val('true');
             else if (value === false || String(value).toLowerCase() === 'f') $input.val('false');
         } else {
-            // CORREZIONE: Usa un singolo spazio come placeholder per far funzionare il selettore CSS `:not(:placeholder-shown)`
-            // e replicare il comportamento dell'etichetta flottante.
-            const placeholder = ' ';
+            // CORREZIONE: Ripristinata la logica originale del placeholder per visualizzare "NULL".
+            const placeholder = (value === null) ? 'NULL' : ' ';
             $input = $(`<input type="text" class="edit-input" id="edit-field-${name}" placeholder="${placeholder}" ${isReadOnly ? 'readonly' : ''} />`);
             if(value !== null) $input.val(value);
         }
@@ -277,6 +277,7 @@ $(document).ready(function() {
         return $field;
     }
 
+
     function saveEdits(keepOpen) {
         const updates = {};
         $('#editForm .edit-field').each(function() {
@@ -285,9 +286,9 @@ $(document).ready(function() {
             const $input = $(this).find('.edit-input');
             if ($input.is('[readonly],[disabled]')) return;
             const current = $input.val();
-            
+
             let originalString = (original === null) ? 'NULL' : (typeof original === 'boolean' ? (original ? 'true' : 'false') : String(original));
-            
+
             if (current !== originalString) {
                 updates[name] = current;
             }
@@ -347,7 +348,7 @@ $(document).ready(function() {
             }).on('mouseup.drag', function() { isDragging = false; $(document).off('mousemove.drag mouseup.drag'); });
         });
     }
-    
+
     function showHelpPopup($anchor, title, subtitle, content) {
         $('.help-pop').remove();
         const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
@@ -360,12 +361,12 @@ $(document).ready(function() {
             const popRect = $pop[0].getBoundingClientRect(), vh = window.innerHeight, vw = window.innerWidth, m = 10;
             if (popRect.height >= vh - (m*2)) top = m; else if (popRect.bottom > vh - m) top = dotRect.top - popRect.height - 8;
             if (top < m) top = m;
-            if (popRect.left < m) { left = m; $pop.css({ transform: 'translateX(0)' }); } 
+            if (popRect.left < m) { left = m; $pop.css({ transform: 'translateX(0)' }); }
             else if (popRect.right > vw - m) { left = vw - m; $pop.css({ transform: 'translateX(-100%)' }); }
             $pop.css({ top: `${top}px`, left: `${left}px` }).addClass('open');
         }, 10);
     }
-    
+
     $(document).on('click', function(e) { if (!$(e.target).closest('.help-pop, .help-dot').length) $('.help-pop').remove(); });
     $(document).on('click', '.help-close', () => $('.help-pop').remove());
     $(document).on('keydown', function(e) { if(e.key === 'Escape') $('.help-pop').remove(); });
