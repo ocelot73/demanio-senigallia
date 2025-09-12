@@ -105,7 +105,6 @@ function handle_ajax_request(&$FIELD_HELP) {
                     $types[$row['column_name']] = $row['data_type'];
                 }
 
-                // CORREZIONE CRITICA: Logica di costruzione query UPDATE replicata 1:1 dall'originale
                 $set = []; $params = []; $idx = 1;
                 foreach ($updates as $col => $val) {
                     if (!isset($types[$col]) || $col === 'geom') continue;
@@ -131,7 +130,6 @@ function handle_ajax_request(&$FIELD_HELP) {
                 $res = @pg_query_params($conn, $sql, $params);
                 
                 if (!$res || pg_affected_rows($res) === 0) {
-                    // CORREZIONE CRITICA: Logica di costruzione query INSERT replicata 1:1 dall'originale
                     $insert_cols = []; $insert_vals = []; $insert_params = []; $p = 1;
                     
                     $insert_cols[] = pg_escape_identifier($conn, 'idf24');
@@ -155,7 +153,7 @@ function handle_ajax_request(&$FIELD_HELP) {
                         }
                     }
                     
-                    if(count($insert_cols) > 1){ // L'originale controllava che ci fosse almeno un altro campo oltre a idf24
+                    if(count($insert_cols) > 1){ 
                         $ins_sql = "INSERT INTO demanio.concessioni (" . implode(', ', $insert_cols) . ") VALUES (" . implode(', ', $insert_vals) . ")";
                         $ins_res = @pg_query_params($conn, $ins_sql, $insert_params);
                         if (!$ins_res) throw new Exception('Errore durante INSERT: ' . pg_last_error($conn));
