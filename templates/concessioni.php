@@ -1,72 +1,104 @@
-<?php // /templates/concessioni.php ?>
-<div class="controls-bar">
-    <div class="btn-group">
-        <?php if ($currentPageKey === 'concessioni'): ?>
-            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_null" class="btn" title="Verificati ma non spediti"><i class="fas fa-check-circle" style="color:var(--color-warning);"></i> Verificati non spediti</a>
-            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_not_null_pec_not_null" class="btn" title="Verificati e spediti"><i class="fas fa-check-double" style="color:var(--color-success);"></i> Verificati e spediti</a>
-            <a href="<?= APP_URL ?>/index.php?page=concessioni&filter_type=verifica_null_pec_null" class="btn" title="Non verificati"><i class="fas fa-times-circle" style="color:var(--color-danger);"></i> Non verificati</a>
-        <?php endif; ?>
-    </div>
-    <div class="btn-group">
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_view=1" class="btn" title="Ripristina vista iniziale"><i class="fas fa-home"></i> Ripristina</a>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&toggle_view=1" class="btn" title="<?= ($data['full_view'] ?? false) ? 'Vista parziale' : 'Vista completa' ?>"><i class="fas fa-table"></i> <?= ($data['full_view'] ?? ($currentPageKey === 'concessioni')) ? 'Parziale' : 'Completa' ?></a>
-        <?php if (!empty($data['hidden_columns'] ?? [])): ?>
-            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&show_all=1" class="btn" title="Mostra tutte le colonne"><i class="fas fa-eye"></i> Mostra Colonne</a>
-        <?php else: ?>
-            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&hide_all=1" class="btn" title="Nascondi tutte le colonne"><i class="fas fa-eye-slash"></i> Nascondi Colonne</a>
-        <?php endif; ?>
-        <button id="toggle-col-width" class="btn" title="Cambia larghezza colonne"><i class="fas fa-text-width"></i> Largh.colonne</button>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&reset_order=1" class="btn" title="Ripristina ordinamento colonne"><i class="fas fa-undo"></i> Ordine</a>
-        <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&export_csv=1" class="btn" title="Esporta dati in formato CSV"><i class="fas fa-file-csv"></i> Esporta</a>
-        <?php if (!empty($data['filters'] ?? [])): ?><a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&clear_filters=1" class="btn btn-primary" title="Azzera tutti i filtri di colonna"><i class="fas fa-broom"></i> Azzera filtri</a><?php endif; ?>
-    </div>
-</div>
+<?php // /templates/concessioni.php
+// Variabili attese: $records, $columns, $hidden_columns, $order_column, $order_direction,
+// $total_pages, $current_page, $full_view
 
-<div class="hidden-columns-bar" id="hiddenColumnsBar" style="<?= empty($data['hidden_columns'] ?? []) ? 'display:none' : '' ?>">
-    <strong>Colonne nascoste:</strong> <span id="hiddenColumnsList"></span>
-</div>
+$visible_columns = array_values(array_diff($columns, $hidden_columns ?? []));
+?>
+<div class="card-container">
 
-<div class="table-container">
-    <table id="dataTable">
-        <thead>
-            <tr>
-                <th style="width: 80px;">Azioni</th>
-                <?php foreach ($data['columns'] as $col):
-                    if (in_array($col, ($data['hidden_columns'] ?? []))) continue;
+    <div class="table-actions">
+        <div class="left">
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['reset_view' => 1])) ?>">
+                <i class="fas fa-rotate-left"></i> Ripristina
+            </a>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['toggle_view' => 1])) ?>">
+                <i class="fas fa-eye"></i> <?= $full_view ? 'Parziale' : 'Completa' ?>
+            </a>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['show_all' => 1])) ?>">
+                <i class="fas fa-table-columns"></i> Mostra colonne
+            </a>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['hide_all' => 1])) ?>">
+                <i class="fas fa-table-columns"></i> Nascondi colonne
+            </a>
+            <button id="toggle-col-width" class="btn">
+                <i class="fas fa-arrows-left-right-to-line"></i> Largh. colonne
+            </button>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['reset_order' => 1])) ?>">
+                <i class="fas fa-arrow-down-a-z"></i> Ordine
+            </a>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['clear_filters' => 1])) ?>">
+                <i class="fas fa-filter-circle-xmark"></i> Azzera filtri
+            </a>
+            <a class="btn" href="<?= htmlspecialchars(build_current_url(['export_csv' => 1])) ?>">
+                <i class="fas fa-file-export"></i> Esporta
+            </a>
+        </div>
+    </div>
+
+    <!-- Barra “colonne nascoste” gestita da JS -->
+    <div id="hiddenColumnsBar" class="hidden-columns-bar" style="display:none">
+        <div class="title"><i class="fas fa-eye-slash"></i> Colonne nascoste:</div>
+        <div id="hiddenColumnsList"></div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <!-- Azioni / N. -->
+                    <th data-column="azioni"><div class="header-content"><span class="col-title">AZIONI</span></div></th>
+                    <th data-column="n"><div class="header-content"><span class="col-title">N.</span></div></th>
+
+                    <?php foreach ($visible_columns as $col): ?>
+                        <th data-column="<?= htmlspecialchars($col) ?>">
+                            <div class="header-content">
+                                <span class="col-title"><?= htmlspecialchars($col) ?></span>
+                                <?php
+                                    $nextDir = ($order_column === $col && strtoupper($order_direction) === 'ASC') ? 'DESC' : 'ASC';
+                                ?>
+                                <a class="sort-btn <?= $order_column === $col ? 'active' : '' ?>"
+                                   href="<?= htmlspecialchars(build_current_url(['order' => $col, 'dir' => $nextDir])) ?>"
+                                   title="Ordina">
+                                    <i class="fas fa-sort"></i>
+                                </a>
+                                <button class="toggle-btn" onclick="toggleColumn('<?= htmlspecialchars($col) ?>')" title="Nascondi/Mostra colonna">
+                                    <i class="fas fa-columns"></i>
+                                </button>
+                            </div>
+                            <input class="filter-input" type="text" data-column="<?= htmlspecialchars($col) ?>" placeholder="Filtra...">
+                            <div class="resizer"></div>
+                        </th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $rowNumber = 1 + (($current_page - 1) * RECORDS_PER_PAGE);
+                foreach ($records as $row):
+                    // Rileva verifica
+                    $verVal = strtolower(trim((string)($row['verifica'] ?? $row['verifica '] ?? '')));
+                    $isVerified = in_array($verVal, ['si','sì','sí','sì']); // varianti
+                    $trClass = $isVerified ? '' : 'no-verifica';
                 ?>
-                <th data-column="<?= htmlspecialchars($col) ?>">
-                    <div class="header-content">
-                        <span class="col-title"><?= htmlspecialchars($col) ?></span>
-                        <div class="header-title-actions">
-                            <a href="<?= APP_URL ?>/index.php?page=<?= $currentPageKey ?>&order=<?= urlencode($col) ?>&dir=<?= ($data['order_column'] ?? '') == $col && ($data['order_direction'] ?? '') == 'ASC' ? 'DESC' : 'ASC' ?>" class="sort-btn <?= ($data['order_column'] ?? '') == $col ? 'active' : '' ?>">
-                            <?= ($data['order_column'] ?? '') == $col ? (($data['order_direction'] ?? '') == 'ASC' ? '↑' : '↓') : '↕' ?>
-                          </a>
-                          <button class="toggle-btn" data-column="<?= htmlspecialchars($col) ?>">✕</button>
-                        </div>
-                    </div>
-                    <input type="text" class="filter-input" data-column="<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars(($data['filters'] ?? [])[$col] ?? '') ?>" placeholder="Filtra...">
-                </th>
-                <?php endforeach; ?>
-            </tr>
-        </thead>
-        <tbody>
-          <?php if (!empty($data['records'])): foreach ($data['records'] as $row): ?>
-          <tr data-idf24="<?= htmlspecialchars($row['idf24'] ?? '') ?>">
-              <td style="text-align:center;">
-                  <span class="row-actions">
-                    <a href="#" class="details-btn" title="Dettagli SID"><i class="fas fa-search"></i></a>
-                    <a href="#" class="edit-btn" title="Modifica"><i class="fas fa-pencil-alt"></i></a>
-                  </span>
-              </td>
-              <?php foreach ($data['columns'] as $col): if (in_array($col, ($data['hidden_columns'] ?? []))) continue; ?>
-                  <td><?= htmlspecialchars($row[$col] ?? '') ?></td>
-              <?php endforeach; ?>
-          </tr>
-          <?php endforeach; else: ?>
-          <tr><td colspan="<?= count($data['columns'] ?? []) + 1 ?>">Nessun record trovato.</td></tr>
-          <?php endif; ?>
-        </tbody>
-    </table>
-</div>
+                <tr class="<?= $trClass ?>">
+                    <td class="row-actions">
+                        <a class="details-btn" href="<?= htmlspecialchars(build_current_url(['details' => $row['idf24'] ?? ''])) ?>" title="Dettagli">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a class="edit-btn" href="<?= htmlspecialchars(build_current_url(['edit' => $row['idf24'] ?? ''])) ?>" title="Modifica">
+                            <i class="fas fa-pen-to-square"></i>
+                        </a>
+                    </td>
+                    <td><?= $rowNumber++ ?></td>
 
-<?php require __DIR__ . '/partials/pagination.php'; ?>
+                    <?php foreach ($visible_columns as $col): ?>
+                        <td><?= htmlspecialchars((string)($row[$col] ?? '')) ?></td>
+                    <?php endforeach; ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <?php require __DIR__ . '/partials/pagination.php'; ?>
+</div>
