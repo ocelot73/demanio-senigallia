@@ -1,509 +1,1223 @@
-/* /public/assets/js/app.js */
-$(document).ready(function() {
+/* /public/assets/css/style.css */
 
-    // --- Config Globale (da PHP) ---
-    const FIELD_HELP = window.FIELD_HELP_DATA || {};
-    const hiddenColumns = window.hiddenColumnsData || [];
+/* --- DESIGN SYSTEM E STILI GLOBALI --- */
+:root {
+    --font-family: 'Titillium Web', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+--sidebar-width: 260px;
+    --sidebar-width-collapsed: 70px;
+    --header-height: 70px;
 
-    // --- Funzioni di Utilità ---
-    function postAction(action, data, callback, dataType = 'json') {
-        let postData = { action: action, ...data };
-        $.post(window.location.href, postData, callback || function(r) {
-            if (r.success) {
-                location.reload(); 
-            } else {
-                console.error('Azione fallita:', action, r.error);
-                alert('Si è verificato un errore: ' + (r.error || 'Dettagli non disponibili.'));
-            }
-        }, dataType).fail(function(jqXHR, textStatus, errorThrown) {
-             console.error('Errore di comunicazione AJAX per azione ' + action + ':', jqXHR.responseText);
-            alert('Errore di comunicazione con il server: ' + (jqXHR.responseJSON?.error || errorThrown));
-        });
+    /* Colori Tema Chiaro */
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+--color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
+    --color-sidebar-bg: #1e293b;
+    --color-sidebar-text: #f1f5f9;
+    --color-sidebar-text-secondary: #94a3b8;
+    --color-highlight-orange: #ffe7c4;
+    --color-highlight-green: #e6fffa;
+    --color-zebra-stripe: #f9fafb;
+
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+--color-primary-light: #eff6ff;
+    --color-success: #2E7D32;
+    --color-warning: #F57F17;
+    --color-danger: #ef4444;
+    --info-color: #0277BD;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+--radius-md: 8px;
+    --radius-lg: 16px;
+    --transition-all: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Colori Tema Scuro */
+html.dark-theme {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-border: #334155;
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+--color-sidebar-bg: #0f172a;
+    --color-sidebar-text: #f1f5f9;
+    --color-sidebar-text-secondary: #94a3b8;
+    --color-highlight-orange: #854d0e;
+    --color-highlight-green: #004d40;
+    --color-zebra-stripe: #131c31;
+--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+}
+
+/* --- LAYOUT PRINCIPALE --- */
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    display: flex;
+transition: var(--transition-all);
+}
+#sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: var(--color-sidebar-bg);
+color: var(--color-sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    transition: width 0.3s ease;
+    z-index: 100;
+    overflow-x: hidden;
+}
+#main-content {
+    width: calc(100% - var(--sidebar-width));
+    margin-left: var(--sidebar-width);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    padding: 1.5rem;
+display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+}
+body.sidebar-collapsed #sidebar {
+    width: var(--sidebar-width-collapsed);
+}
+body.sidebar-collapsed #main-content {
+    width: calc(100% - var(--sidebar-width-collapsed));
+    margin-left: var(--sidebar-width-collapsed);
+}
+
+/* --- SIDEBAR --- */
+.sidebar-header {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.sidebar-header img {
+    width: 40px;
+    height: 40px;
+}
+.sidebar-header .logo-text {
+    opacity: 1;
+transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+.sidebar-header .logo-text h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+color: #fff;
+}
+.sidebar-header .logo-text p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-sidebar-text-secondary);
+}
+body.sidebar-collapsed .sidebar-header {
+    justify-content: flex-start;
+    padding-left: 22px;
+    padding-right: 0;
+}
+body.sidebar-collapsed .logo-text {
+    opacity: 0;
+pointer-events: none;
+    width: 0;
+}
+.sidebar-nav {
+    flex-grow: 1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+}
+.sidebar-nav a, .sidebar-footer button, .sidebar-footer a {
+    font-family: var(--font-family);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+padding: 0.8rem 1.75rem;
+    color: var(--color-sidebar-text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+border-left: 3px solid transparent;
+}
+.sidebar-nav a i, .sidebar-footer i {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+.sidebar-nav a:hover {
+    color: var(--color-sidebar-text);
+    background-color: rgba(255,255,255,0.05);
+}
+.sidebar-nav a.active {
+    color: #fff;
+    background-color: var(--color-primary);
+border-left-color: #fff;
+}
+body.sidebar-collapsed .sidebar-nav a > span {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+}
+body.sidebar-collapsed .sidebar-nav a {
+    justify-content: flex-start;
+    padding-left: 23px;
+    padding-right: 0;
+}
+.sidebar-footer {
+    padding: 1rem 1.75rem;
+    border-top: 1px solid #475569;
+}
+.sidebar-footer a, .sidebar-footer button {
+    width:100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+body.sidebar-collapsed .sidebar-footer {
+    padding: 1rem 0;
+}
+body.sidebar-collapsed .sidebar-footer a,
+body.sidebar-collapsed .sidebar-footer button {
+    justify-content: flex-start;
+padding-left: 23px;
+    padding-right: 0;
+}
+.sidebar-footer .link-text {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+body.sidebar-collapsed .link-text {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+}
+.theme-switcher {
+    margin-bottom: 1rem;
+}
+.submenu-toggle {
+    position: relative;
+}
+.submenu-arrow {
+    position: absolute;
+    right: 1.5rem;
+    transition: transform 0.3s ease;
+}
+.has-submenu.open > .submenu-toggle .submenu-arrow {
+    transform: rotate(90deg);
+}
+.submenu {
+    list-style: none;
+    padding: 0;
+margin: 0;
+    background: rgba(0,0,0,0.2);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+.has-submenu.open > .submenu {
+    max-height: 500px;
+}
+.submenu a {
+    padding-left: 3.75rem;
+    font-size: 0.85rem;
+}
+.submenu a.active {
+    background-color: var(--color-primary-hover);
+}
+body.sidebar-collapsed .submenu-arrow {
+    display: none;
+}
+body.sidebar-collapsed .has-submenu.open {
+    background-color: transparent;
+}
+body.sidebar-collapsed .submenu {
+    background: rgba(0,0,0,0.3);
+}
+body.sidebar-collapsed .submenu a {
+    padding-left: 23px;
+    padding-right: 0;
+    justify-content: flex-start;
+}
+
+/* --- MAIN CONTENT HEADER --- */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+flex-shrink: 0;
+}
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+#sidebar-toggle {
+    background: none;
+border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: 5px;
+}
+.page-title h1 {
+    margin: 0;
+    font-size: 1.75rem;
+font-weight: 700;
+    color: var(--color-text-primary);
+}
+.page-title p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.global-search {
+    position: relative;
+}
+.global-search i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+}
+#globalSearch {
+    padding: 10px 14px 10px 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    width: 250px;
+    transition: var(--transition-all);
+background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+}
+#globalSearch:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+#clearSearch {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    position: absolute;
+    right: 10px;
+top: 50%;
+    transform: translateY(-50%);
+    display: none;
+}
+
+/* --- CONTROLS & FILTERS --- */
+.controls-bar {
+    display: flex;
+justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+flex-wrap: wrap;
+}
+.btn, select.btn {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-all);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: 14px;
+}
+select.btn {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding-right: 30px;
+background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+}
+.btn:hover {
+    background-color: var(--color-bg);
+    border-color: #cbd5e1;
+}
+.btn.btn-primary {
+    background-color: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+.btn.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+.btn i {
+    font-size: 0.9em;
+}
+
+/* --- HIDDEN COLUMNS BAR --- */
+.hidden-columns-bar {
+    background: var(--color-primary-light);
+padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-primary);
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.hidden-column-tag {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.hidden-column-tag button {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+    font-family: var(--font-family);
+}
+html.dark-theme .hidden-columns-bar {
+    background-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
+color: var(--color-text-primary);
+}
+html.dark-theme .hidden-column-tag {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+html.dark-theme .hidden-column-tag button {
+    color: var(--color-text-secondary);
+}
+
+/* --- TABLE CONTAINER & TABLE --- */
+.table-container {
+    flex-grow: 1;
+overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    scrollbar-gutter: stable both-edges;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+}
+th, td {
+    padding: 8px 12px;
+white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.85rem;
+    transition: background-color: 0.3s;
+}
+th {
+    background-color: var(--color-bg);
+    color: var(--color-text-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    user-select: none;
+    font-weight: 700;
+text-transform: uppercase;
+    font-size: 0.75rem;
+    width: max-content;
+}
+th[data-column="verifica"], th[data-column="pec inviata"] {
+    width: 80px;
+    min-width: 20px;
+}
+th.filtered {
+    background: var(--color-primary-light);
+}
+tbody tr:nth-child(even) {
+    background-color: var(--color-zebra-stripe);
+}
+tbody tr:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+tbody tr.row-selected {
+    background-color: var(--color-highlight-green) !important;
+    font-weight: 600;
+}
+tbody tr.no-verifica {
+    background-color: var(--color-highlight-orange) !important;
+}
+tbody tr.no-verifica:hover {
+    background-color: color-mix(in srgb, var(--color-highlight-orange) 85%, #000) !important;
+}
+mark.hl {
+    background: #fde047;
+padding: 0 2px;
+    border-radius: 2px;
+}
+.resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    cursor: col-resize;
+height: 100%;
+    z-index: 10;
+}
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.header-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.col-title {
+    flex-grow: 1;
+}
+.sort-btn, .toggle-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    width: 24px;
+height: 24px;
+    transition: all 0.2s;
+}
+.sort-btn:hover, .toggle-btn:hover {
+    background-color: var(--color-border);
+}
+.sort-btn.active {
+    color: var(--color-primary);
+}
+.filter-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.8rem;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+margin-top: 4px;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+}
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+}
+.details-btn, .edit-btn {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: 1.1em;
+    transition: all 0.2s;
+}
+.details-btn:hover {
+    color: var(--color-primary);
+    transform: scale(1.1);
+}
+.edit-btn:hover {
+    color: var(--color-warning);
+    transform: scale(1.1);
+}
+.icon-check {
+    color: var(--color-success);
+    font-weight: bold;
+}
+.icon-cross {
+    color: var(--color-danger);
+    font-weight: bold;
+}
+.width-mode-content {
+    table-layout: auto;
+    width: auto;
+}
+.width-mode-narrow th, .width-mode-narrow td {
+    width: 50px;
+}
+.width-mode-narrow th[data-column*="concessionario"] {
+    width: 250px;
+}
+
+/* --- PAGINATION --- */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    flex-shrink: 0;
+gap: 4px;
+    user-select: none;
+}
+.pagination a, .pagination span {
+    padding: 6px 12px;
+    text-decoration: none;
+border: 1px solid var(--color-border);
+    color: var(--color-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.pagination a:hover {
+    background: var(--color-primary-light);
+}
+.pagination .current {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+.pagination .disabled {
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
+    background: var(--color-bg);
+}
+.pagination .dots {
+    border: none;
+    color: var(--color-text-secondary);
+    background: transparent;
+}
+
+
+/* --- MODALS --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(5px);
+z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.modal-overlay.open {
+    opacity: 1;
+}
+.modal-container {
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 95vw;
+height: 90vh;
+    max-width: 1400px;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+.modal-overlay.open .modal-container {
+    transform: scale(1);
+}
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-surface);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+.modal-header h2 {
+    margin: 0;
+font-size: 1.25rem;
+}
+.modal-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}
+.modal-close-btn {
+    background: none;
+    border: none;
+font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+}
+.modal-body {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+.modal-nav {
+    width: 250px;
+    border-right: 1px solid var(--color-border);
+    padding: 1rem;
+    background: var(--color-surface);
+    overflow-y: auto;
+}
+.modal-content {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+.nav-button {
+    display: flex;
+    width: 100%;
+text-align: left;
+    padding: 7px 14px;
+    margin-bottom: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    background: transparent;
+color: var(--color-text-primary);
+    transition: all .2s;
+    font-family: var(--font-family);
+}
+.nav-button:hover:not(.active) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+.nav-button.active {
+    color: #fff;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+.nav-button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+background-color: transparent !important;
+    color: var(--color-text-secondary) !important;
+    border-color: var(--color-border) !important;
+}
+.nav-button i {
+    margin-right: 10px;
+}
+.record-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: grid;
+gap: 1rem 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+.detail-item-label {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+margin-bottom: 4px;
+}
+.detail-item-value {
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    word-break: break-word;
+}
+.modal-footer {
+    display: flex;
+gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+.badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline;
+    line-height: 1.6;
+    box-decoration-break: clone;
+-webkit-box-decoration-break: clone;
+}
+.badge-blue {
+    background-color: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #dbeafe;
+}
+.badge-orange {
+    background-color: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #ffedd5;
+}
+.badge-purple {
+    background-color: #f5f3ff;
+color: #5b21b6;
+    border: 1px solid #ede9fe;
+}
+html.dark-theme .badge-blue {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+    border: 1px solid #1e40af;
+}
+html.dark-theme .badge-orange {
+    background-color: #7c2d12;
+    color: #fed7aa;
+    border: 1px solid #9a3412;
+}
+html.dark-theme .badge-purple {
+    background-color: #4c1d95;
+    color: #ddd6fe;
+    border: 1px solid #5b21b6;
+}
+
+/* --- EDIT MODAL --- */
+#editModal .modal-container {
+    max-width: 90vw;
+    width: 1400px;
+    height: 95vh;
+}
+#editModal .modal-content {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+#editForm {
+    box-sizing: border-box;
+}
+#editAlert {
+    display:none;
+    color:var(--color-danger);
+    font-weight:600;
+    margin-bottom:10px;
+    background:#fee2e2;
+    padding:1rem;
+    border-radius:var(--radius-md)
+}
+html.dark-theme #editAlert {
+    background: #450a0a;
+border-color: #7f1d1d;
+}
+.accordion-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+background-color: color-mix(in srgb, var(--color-surface) 50%, transparent);
+    overflow: hidden;
+}
+.accordion-header {
+    background-color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+transition: all 0.2s ease;
+}
+.accordion-header.has-active-fields {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+}
+html.dark-theme .accordion-header.has-active-fields {
+    background-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+.accordion-header::after {
+    content: '\f078';
+font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    transition: transform 0.3s ease;
+}
+.accordion-item.open .accordion-header::after {
+    transform: rotate(-180deg);
+}
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+    padding: 0 1.5rem;
+}
+.accordion-item.open .accordion-content {
+    max-height: 2000px;
+    padding: 1.5rem;
+}
+.edit-grid {
+    display: grid;
+grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+.edit-field {
+    position: relative;
+}
+.edit-field-container {
+    position: relative;
+background-color: var(--color-bg);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: 22px 14px 8px 14px;
+    border: 1px solid var(--color-border);
+    border-bottom: 2px solid var(--color-border);
+transition: all 0.2s ease;
+}
+.edit-field-container:focus-within {
+    border-bottom-color: var(--color-primary);
+}
+.edit-field-container.is-readonly {
+    background-color: var(--color-surface);
+    cursor: not-allowed;
+opacity: 0.7;
+}
+.edit-field .edit-input, .edit-field select.edit-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: var(--font-family);
+    font-size: 1rem;
+background: transparent;
+    color: var(--color-text-primary);
+    padding: 0;
+}
+.edit-field .edit-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+.edit-field .edit-input[readonly] {
+    cursor: not-allowed;
+    color: var(--color-text-secondary);
+}
+.edit-field select.edit-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+background-position: right 0 center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 1.5em;
+}
+html.dark-theme .edit-field select.edit-input {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+.edit-field-label {
+    position: absolute;
+    top: 16px;
+    left: 14px;
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--color-bg);
+    padding: 0 4px;
+}
+.edit-field-container.is-readonly .edit-field-label {
+    background-color: var(--color-surface);
+}
+.edit-input:focus + .edit-field-label, .edit-input:not([placeholder=" "]) + .edit-field-label, .edit-input:not(:placeholder-shown) + .edit-field-label, select.edit-input:valid + .edit-field-label {
+    top: -10px;
+left: 10px;
+    font-size: 0.8rem;
+    color: var(--color-primary);
+    font-weight: 700;
+}
+.help-dot {
+    --md-surface:#F1F3FF;
+    --md-outline:#C5CAE9;
+    --md-ink:#0D47A1;
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--md-surface);
+    border:1px solid var(--md-outline);
+    color:var(--md-ink);
+    font-weight:800;
+    font-size:12px;
+    line-height:1;
+    cursor:pointer;
+    overflow:hidden;
+box-shadow:0 1px 2px rgba(13, 71, 161, .15), 0 2px 6px rgba(13, 71, 161, .08);
+transition:transform .12s ease, box-shadow .2s ease, background .2s ease;
+    font-family: var(--font-family);
+    pointer-events: all;
+}
+.help-dot:hover {
+    transform:translateY(-1px);
+box-shadow:0 4px 10px rgba(13,71,161,.18);
+    background:#EBEEFF;
+}
+.help-dot:active {
+    transform:scale(.97);
+}
+.help-dot::after{ /* ripple */
+  content:""; position:absolute; inset:auto; width:0; height:0; border-radius:50%;
+  background:rgba(13,71,161,.12); transform:translate(-50%,-50%); pointer-events:none;
+}
+.help-dot.ripple::after{
+  left:50%; top:50%; width:200%; height:200%; transition:width .35s ease, height .35s ease, opacity .45s ease; opacity:0;
+}
+.help-pop {
+    position:fixed;
+    z-index:9999;
+    min-width:260px;
+    max-width:520px;
+background:var(--color-surface);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-lg);
+    padding:12px 14px;
+    display:none;
+    font-family:var(--font-family);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    max-height: calc(100vh - 20px);
+overflow-y: auto;
+}
+.help-pop.open {
+    display:block;
+    opacity: 1;
+}
+.help-title {
+    font-weight:700;
+    margin:0 0 6px 0;
+font-size:1rem;
+    color:var(--color-primary);
+    cursor: move;
+    user-select: none;
+}
+.help-sub {
+    font-size:0.8rem;
+    color:var(--color-text-secondary);
+    margin-bottom:6px;
+    font-style:italic
+}
+.help-content {
+    font-size:0.9rem;
+line-height:1.4;
+    color:var(--color-text-primary);
+    font-weight:400;
+}
+.help-close {
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:none;
+    border:none;
+    color:var(--color-text-secondary);
+    font-size:16px;
+cursor:pointer
+}
+
+/* --- PAGINA IMPORTAZIONE --- */
+.import-container .card-container {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2.5rem;
+border: 1px solid var(--color-border);
+    max-width: 800px;
+    margin: 2rem auto;
+}
+.import-container #uploaderCard {
+    text-align: center;
+}
+.import-container #drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    padding: 50px 25px;
+    transition: border-color 0.3s, background-color 0.3s;
+cursor: pointer;
+    margin-bottom: 1.5rem;
+}
+.import-container #drop-zone.dragover {
+    border-color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+.import-container #drop-zone .icon {
+    font-size: 3rem;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    display: block;
+}
+.import-container #drop-zone p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+}
+.import-container #drop-zone .browse-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    cursor: pointer;
+}
+.import-container #fileInfo {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+margin-bottom: 1.5rem;
+}
+.import-container #uploadButton {
+    width: auto;
+    padding: 12px 32px;
+    font-size: 1rem;
+}
+.import-container #uploadButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+    border-color: #ccc;
+    color: #666;
+}
+.import-container #progressCard {
+    display: none;
+}
+.import-container #progress-bar-container {
+    background-color: #e9ecef;
+    border-radius: 20px;
+    overflow: hidden;
+height: 10px;
+    margin-bottom: 1rem;
+}
+.import-container #progress-bar {
+    width: 0%;
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: 20px;
+transition: width 0.2s linear, background-color 0.4s;
+}
+.import-container #progress-bar.error {
+    background-color: var(--color-danger);
+}
+.import-container #progress-bar.warning {
+    background-color: var(--color-warning);
+}
+.import-container #progress-text {
+    text-align: right;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+font-weight: 500;
+    margin-bottom: 1.5rem;
+}
+.import-container #logContainer {
+    margin-top: 1.5rem;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+padding: 1rem;
+    height: 350px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.6;
+}
+.import-container .log-item {
+    display: flex;
+    align-items: flex-start;
+gap: 12px;
+    padding: 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+html.dark-theme .import-container .log-item {
+    border-bottom-color: #334155;
+}
+.import-container .log-item:last-child {
+    border-bottom: none;
+}
+.import-container .log-item .icon {
+    width: 20px;
+    text-align: center;
+padding-top: 2px;
+    font-size: 1.1em;
+}
+.import-container .log-item .message {
+    flex: 1;
+    word-break: break-word;
+}
+.import-container .log-item.status-info .icon {
+    color: var(--info-color);
+}
+.import-container .log-item.status-success .icon {
+    color: var(--color-success);
+}
+.import-container .log-item.status-warning .icon {
+    color: var(--color-warning);
+}
+.import-container .log-item.status-error .icon {
+    color: var(--color-danger);
+}
+.import-container .final-actions {
+    text-align: center;
+    margin-top: 2rem;
+    display: none;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+}
+    #sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
     }
-
-    window.toggleColumn = (n) => postAction('toggle_column', { toggle_column: n });
-    function applyFilter(n, v) { postAction('set_filter', { set_filter: n, filter_value: v }); }
-    function saveColumnWidths() {
-        let w = {};
-        $('#dataTable thead th[data-column]').each(function() {
-            const n = $(this).data('column');
-            if (n) w[n] = $(this).outerWidth();
-        });
-        postAction('save_column_widths', { column_widths: w }, () => {}); // Callback vuota, non serve ricaricare
-    }
-    function updateColumnOrder() {
-        let order = $('#dataTable thead tr th[data-column]').map(function() { return $(this).data('column'); }).get();
-        postAction('save_column_order', { column_order: order }, () => {}); // Callback vuota, non serve ricaricare
-    }
-
-
-    // --- Gestione UI (Sidebar, Tema, Modali) ---
-    $('#sidebar-toggle').on('click', function() {
-        const body = document.body;
-        body.classList.toggle('sidebar-collapsed');
-        localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
-    });
-
-    $('.submenu-toggle').on('click', function(e) {
-        e.preventDefault();
-        $(this).parent('.has-submenu').toggleClass('open');
-    });
-
-    const themeToggle = $('#theme-toggle');
-    function setTheme(theme) {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark-theme');
-            themeToggle.find('i').removeClass('fa-moon').addClass('fa-sun');
-            themeToggle.find('.link-text').text('Tema Chiaro');
-        } else {
-            document.documentElement.classList.remove('dark-theme');
-            themeToggle.find('i').removeClass('fa-sun').addClass('fa-moon');
-            themeToggle.find('.link-text').text('Tema Scuro');
-        }
-        localStorage.setItem('theme', theme);
-    }
-
-    setTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
-    themeToggle.on('click', () => setTheme(document.documentElement.classList.contains('dark-theme') ? 'light' : 'dark'));
-
-    const openModal = (modalId) => $(`#${modalId}`).css('display', 'flex').delay(10).queue(function(next) { $(this).addClass('open'); next(); });
-    const closeModal = (modalId) => {
-        const $modal = $(`#${modalId}`);
-        $modal.removeClass('open');
-        setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
-    };
-
-    $('.modal-overlay').on('click', function(e) { if (e.target === this) closeModal($(this).attr('id')); });
-    $('.modal-close-btn, #editCancelBtn').on('click', function() { closeModal($(this).closest('.modal-overlay').attr('id')); });
-    $('.modal-container').on('click', e => e.stopPropagation());
-
-    // --- Gestione Tabella ---
-    $('#dataTable tbody').on('click', 'tr', function(e) {
-        if (!$(e.target).is('a, button, .row-actions, .row-actions i')) {
-            $(this).toggleClass('row-selected');
-        }
-    });
-
-    function updateHiddenColumnsDisplay() {
-        const bar = $('#hiddenColumnsBar'), list = $('#hiddenColumnsList');
-        if (hiddenColumns.length > 0) {
-            bar.css('display', 'flex');
-            list.empty();
-            hiddenColumns.forEach(c => list.append($(`<span class="hidden-column-tag">${c} <button onclick="toggleColumn('${c}')" title="Mostra colonna">✕</button></span>`)));
-        } else {
-            bar.hide();
-        }
-    }
-    updateHiddenColumnsDisplay();
-
-    let isResizing = false, currentTh = null, startX = 0, startWidth = 0;
-    $('#dataTable .resizer').on('mousedown', function(e) {
-        isResizing = true; currentTh = $(this).closest('th'); startX = e.pageX; startWidth = currentTh.width(); $('body').css('cursor', 'col-resize'); e.preventDefault();
-    });
-    $(document).on('mousemove', function(e) { if (isResizing) { const w = startWidth + (e.pageX - startX); if (w > 30) currentTh.width(w); } })
-             .on('mouseup', function() { if (isResizing) { isResizing = false; currentTh = null; $('body').css('cursor', ''); saveColumnWidths(); } });
-
-    $('.filter-input').on('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-
-    function highlightHTML(html, regex) {
-        return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
-    }
-
-    $('#globalSearch').on('input', function() {
-        const query = $(this).val().trim(); $('#clearSearch').toggle(query.length > 0);
-        const regex = query.length > 0 ? new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
-        $('#dataTable tbody tr').each(function() {
-            const $row = $(this);
-            const text = $row.text();
-            const match = !regex || regex.test(text);
-            $row.toggle(match);
-            $row.find('td').each(function() {
-                const $cell = $(this);
-                if (typeof $cell.data('origHtml') === 'undefined') $cell.data('origHtml', $cell.html());
-                $cell.html((match && regex) ? highlightHTML($cell.data('origHtml'), regex) : $cell.data('origHtml'));
-            });
-        });
-    });
-    $('#clearSearch').on('click', () => { $('#globalSearch').val('').trigger('input').focus(); });
-
-    let currentWidthMode = 0;
-    $('#toggle-col-width').on('click', function() {
-        currentWidthMode = (currentWidthMode + 1) % 3; const $table = $('#dataTable');
-        $table.removeClass('width-mode-content width-mode-narrow');
-        if (currentWidthMode === 1) $table.addClass('width-mode-content');
-        else if (currentWidthMode === 2) $table.addClass('width-mode-narrow');
-    });
-
-    // --- LOGICA MODALE DETTAGLI (LENTE) ---
-    $('#dataTable tbody').on('click', '.details-btn', function(e) { e.preventDefault(); e.stopPropagation(); openDetailsModal($(this).closest('tr').data('idf24')); });
-    $('#dataTable tbody').on('dblclick', 'tr', function() { openDetailsModal($(this).data('idf24')); });
-
-    function openDetailsModal(idf24) {
-        if (!idf24) return;
-        const nav = $('#modalNav'), content = $('#modalContent');
-        openModal('detailsModal');
-        nav.empty().html('<p>Caricamento...</p>'); content.html('');
-        $('#modalTitle').text('Dettagli SID - ID Concessione: ' + idf24);
-        
-        // Utilizza la funzione postAction che gestisce già il reload e gli errori
-        postAction('get_sid_details', { idf24: idf24 }, function(resp) {
-            nav.empty(); content.empty();
-            if (resp.error) { content.html(`<p class="error-message">${resp.error}</p>`); return; }
-            $('#modalSubtitle').text('');
-
-            Object.keys(resp).forEach(k => {
-                const it = resp[k];
-                const isDisabled = it.count === 0 && !it.error;
-                const btn = $(`<button class="nav-button ${isDisabled ? 'disabled' : ''}" data-target="panel-${k}" ${isDisabled ? 'disabled' : ''}></button>`)
-                    .html(`<i class="${it.icon}"></i><span>${it.label} (${it.count})</span>`);
-                btn.attr('data-comment', (it.comment || ''));
-                nav.append(btn);
-
-                if (it.count > 0 && !it.error) {
-                    const panel = $(`<div class="detail-panel" id="panel-${k}" style="display:none"></div>`);
-                    it.data.forEach(rec => {
-                        const card = $('<div class="record-card"></div>');
-                        if(rec['tipo_oggetto'] === 'Zona Demaniale (ZD)') card.css({'border': '2px solid var(--color-primary)', 'box-shadow': '0 0 8px rgba(59, 130, 246, 0.4)'});
-                        
-                        Object.entries(rec).forEach(([key, value]) => {
-                            if (value !== null && String(value).trim() !== '') {
-                                let displayValue;
-                                const badges_blue = ['oggetto', 'scopi_descrizione', 'superficie_richiesta', 'descrizione'];
-                                
-                                if (badges_blue.includes(key)) {
-                                    displayValue = `<span class="badge badge-blue">${value}</span>`;
-                                } else if (key === 'tipo_rimozione') {
-                                    if (value === 'Facile rimozione') displayValue = `<span class="badge badge-orange">${value}</span>`;
-                                    else if (value === 'Difficile rimozione') displayValue = `<span class="badge badge-purple">${value}</span>`;
-                                    else displayValue = value;
-                                } else {
-                                    displayValue = value;
-                                }
-                                card.append($(`<div class="detail-item"><div class="detail-item-label">${key.replace(/_/g, ' ')}</div><div class="detail-item-value">${displayValue}</div></div>`));
-                            }
-                        });
-                        if (card.children().length > 0) panel.append(card);
-                    });
-                    content.append(panel);
-                }
-            });
-
-            nav.off('click', '.nav-button').on('click', '.nav-button', function() {
-                if ($(this).is(':disabled')) return;
-                nav.find('.nav-button').removeClass('active'); $(this).addClass('active');
-                content.find('.detail-panel').hide(); $('#' + $(this).data('target')).show();
-                $('#modalSubtitle').text($(this).data('comment') || '');
-            });
-            nav.find('.nav-button:not(:disabled)').first().trigger('click');
-        }, 'json'); // Specifica json per evitare il reload automatico
-    }
-
-    // --- LOGICA MODALE MODIFICA (MATITA) ---
-    let editOriginalData = {};
-    $('#dataTable tbody').on('click', '.edit-btn', function(e) { e.preventDefault(); e.stopPropagation(); openEditModal($(this).closest('tr').data('idf24')); });
-
-    function openEditModal(idf24) {
-        if (!idf24) return;
-        openModal('editModal');
-        $('#editForm').html('<p style="text-align:center; padding: 2rem;">Caricamento dati in corso...</p>');
-        $('#editAlert').hide();
-
-        postAction('get_concessione_edit', { idf24: idf24 }, function(r) {
-            if (r.error) { $('#editAlert').text(r.error).show(); return; }
-            editOriginalData = r;
-            const form = $('#editForm').empty();
-            const groups = {
-                general: { label: 'Dati Principali', fields: [] },
-                t: { label: 'Turistico-ricreative', fields: [] },
-                nt: { label: 'NON Turistiche-ricreative', fields: [] },
-                pac: { label: 'Pesca Acquacoltura Cantieristica', fields: [] }
-            };
-
-            r.columns.forEach(col => {
-                const prefix = col.name.substring(0, col.name.indexOf('_'));
-                const fieldHtml = buildField(col);
-                if (['t', 'nt', 'pac'].includes(prefix)) {
-                    groups[prefix].fields.push(fieldHtml);
-                } else {
-                    groups.general.fields.push(fieldHtml);
-                }
-            });
-
-            Object.values(groups).forEach(group => {
-                let hasValue = group.fields.some(fieldHtml => {
-                    const value = editOriginalData.values[$(fieldHtml).data('name')];
-                    return value !== null && String(value).trim() !== '';
-                });
-                if (hasValue) group.hasActiveFields = true;
-            });
-
-            Object.values(groups).forEach((group, index) => {
-                if (group.fields.length > 0) {
-                    const accordionItem = $(`<div class="accordion-item ${index === 0 ? 'open' : ''}"></div>`);
-                    const accordionHeader = $(`<div class="accordion-header ${group.hasActiveFields ? 'has-active-fields' : ''}">${group.label}</div>`);
-                    const accordionContent = $('<div class="accordion-content"></div>').append($('<div class="edit-grid"></div>').append(group.fields));
-                    accordionItem.append(accordionHeader).append(accordionContent);
-                    form.append(accordionItem);
-                }
-            });
-
-            $('.accordion-header').on('click', function() { $(this).parent('.accordion-item').toggleClass('open'); });
-            $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
-            $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
-        }, 'json');
-    }
-
-    function buildField(col) {
-        const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
-        const isReadOnly = name === 'id' || name === 'geom';
-        let displayLabel = help?.label || name.replace(/_/g, ' ');
-
-        const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
-        const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
-        const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
-
-        if (help) {
-            $label.append(buildHelpDot(name, help));
-        }
-
-        let $input;
-        const hasValue = value !== null && String(value).trim() !== '';
-        
-        if (ui === 'boolean') {
-            $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''} required><option value="" disabled ${hasValue ? '' : 'selected'}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
-            if (value === true || String(value).toLowerCase() === 't') $input.val('true');
-            else if (value === false || String(value).toLowerCase() === 'f') $input.val('false');
-        } else {
-            const placeholder = (value === null) ? 'NULL' : ' ';
-            $input = $(`<input type="text" class="edit-input" id="edit-field-${name}" placeholder="${placeholder}" ${isReadOnly ? 'readonly' : ''} />`);
-            if (value !== null) $input.val(value);
-        }
-
-        $container.append($input).append($label);
-        $field.append($container);
-        return $field;
-    }
-
-    function saveEdits(keepOpen) {
-        const updates = {};
-        $('#editForm .edit-field').each(function() {
-            const name = $(this).data('name');
-            const original = editOriginalData.values[name] ?? null;
-            const $input = $(this).find('.edit-input');
-            if ($input.is('[readonly],[disabled]')) return;
-
-            const val = $input.val();
-            let originalString;
-            
-            if (original === null) {
-                originalString = null;
-            } else if (typeof original === 'boolean') {
-                originalString = original ? 'true' : 'false';
-            } else {
-                originalString = String(original);
-            }
-
-            if (val !== originalString || (original !== null && val === '')) {
-                updates[name] = val;
-            }
-        });
-
-        if (Object.keys(updates).length === 0) {
-            if (!keepOpen) closeModal('editModal');
-            return;
-        }
-
-        postAction('save_concessione_edit', { original_idf24: editOriginalData.idf24, updates: JSON.stringify(updates) }, function(r) {
-            if (r.success) {
-                const newIdf24 = updates['idf24'] || editOriginalData.idf24;
-                if (keepOpen) {
-                    openEditModal(newIdf24);
-                } else {
-                    window.location.href = window.location.href; // Ricarica per vedere i dati aggiornati
-                }
-            } else {
-                $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
-            }
-        }, 'json');
-    }
-
-    $('#editSaveContinueBtn').on('click', () => saveEdits(true));
-    $('#editSaveExitBtn').on('click', () => saveEdits(false));
-
-    // --- Gestione Help Popups ---
-    function buildHelpDot(name, help) {
-        const title = help.title || name.replace(/_/g, ' ');
-        const content = help.content || '';
-        const $dot = $(`<button type="button" class="help-dot" aria-label="Aiuto">?</button>`);
-        $dot.on('click', e => { e.preventDefault(); e.stopPropagation(); showHelpPopup($dot, title, `(${name})`, content); });
-        return $dot;
-    }
-
-    function makeDraggable(popup) {
-        // Usa jQuery UI se disponibile, altrimenti non fa nulla
-        if (typeof $.ui !== 'undefined' && typeof $.ui.draggable !== 'undefined') {
-             popup.draggable({ handle: ".help-title", containment: "window" });
-        }
-    }
-
-    function showHelpPopup($anchor, title, subtitle, content) {
-        $('.help-pop').remove();
-        const $pop = $(`<div class="help-pop" role="dialog"><button class="help-close">&times;</button><div class="help-title">${title}</div><div class="help-sub">${subtitle}</div><div class="help-content">${content}</div></div>`);
-        $('body').append($pop);
-
-        const dotRect = $anchor[0].getBoundingClientRect();
-        let top = dotRect.bottom + 8;
-        let left = dotRect.left + dotRect.width / 2;
-
-        $pop.css({
-            position: 'fixed',
-            top: `${top}px`,
-            left: `${left}px`,
-            transform: 'translateX(-50%)'
-        });
-
-        setTimeout(() => {
-            const popRect = $pop[0].getBoundingClientRect();
-            const vh = window.innerHeight, vw = window.innerWidth, m = 10;
-            if (popRect.height >= vh - (m * 2)) {
-                top = m;
-            } else if (popRect.bottom > vh - m) {
-                top = dotRect.top - popRect.height - 8;
-            }
-            if (top < m) top = m;
-            
-            if (popRect.left < m) {
-                left = m; $pop.css({ transform: 'translateX(0)' });
-            } else if (popRect.right > vw - m) {
-                left = vw - m; $pop.css({ transform: 'translateX(-100%)' });
-            }
-            
-            $pop.css({ top: `${top}px`, left: `${left}px` }).addClass('open');
-            makeDraggable($pop);
-        }, 10);
-    }
-
-    $(document).on('click', function(e) { if (!$(e.target).closest('.help-pop, .help-dot').length) $('.help-pop').remove(); });
-    $(document).on('click', '.help-close', () => $('.help-pop').remove());
-    $(document).on('keydown', function(e) { if (e.key === 'Escape') $('.help-pop').remove(); });
-
-    // --- Pagina Importa ---
-    if (document.getElementById('uploaderCard')) {
-        const uploaderCard = document.getElementById('uploaderCard'),
-              progressCard = document.getElementById('progressCard'),
-              zipFileInput = document.getElementById('zipfile'),
-              dropZone = document.getElementById('drop-zone'),
-              fileInfo = document.getElementById('fileInfo'),
-              fileNameDisplay = document.getElementById('fileName'),
-              uploadButton = document.getElementById('uploadButton'),
-              progressText = document.getElementById('progress-text'),
-              logContainer = document.getElementById('logContainer'),
-              finalActions = document.getElementById('finalActions'),
-              progressBar = document.getElementById('progress-bar');
-        let eventSource = null;
-
-        const browseLink = dropZone.querySelector('.browse-link');
-        dropZone.onclick = (e) => {
-            if (e.target === browseLink) e.preventDefault();
-            zipFileInput.click();
-        };
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-        dropZone.ondrop = (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length && (e.dataTransfer.files[0].type.includes('zip') || e.dataTransfer.files[0].name.endsWith('.zip'))) {
-                zipFileInput.files = e.dataTransfer.files;
-                handleFileSelection();
-            } else {
-                alert('Per favore, seleziona un file in formato ZIP.');
-            }
-        };
-        zipFileInput.onchange = handleFileSelection;
-
-        function handleFileSelection() {
-            if (zipFileInput.files.length) {
-                fileNameDisplay.textContent = zipFileInput.files[0].name;
-                fileInfo.style.display = 'flex';
-                uploadButton.disabled = false;
-            }
-        }
-
-        document.getElementById('uploadForm').onsubmit = (e) => {
-            e.preventDefault();
-            if (!zipFileInput.files.length) return;
-
-            uploaderCard.style.display = 'none';
-            progressCard.style.display = 'block';
-            updateLog('info', 'Preparazione e avvio caricamento file...');
-
-            const formData = new FormData();
-            formData.append('zipfile', zipFileInput.files[0]);
-
-            $.ajax({
-                url: window.APP_URL + '/index.php?page=importa',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                dataType: 'json',
-                xhr: function() {
-                    const xhr = new window.XMLHttpRequest();
-                    xhr.upload.addEventListener('progress', function(evt) {
-                        if (evt.lengthComputable) {
-                            const percentComplete = (evt.loaded / evt.total) * 5;
-                            updateProgress(percentComplete, `Fase 1/5: Caricamento file... ${Math.round((evt.loaded / evt.total) * 100)}%`);
-                        }
-                    }, false);
-                    return xhr;
-                },
-                success: function(result) {
-                    if (result.success) {
-                        startSseProcessing(result.processId);
-                    } else {
-                        finishProcess('error', result.error || 'Errore sconosciuto durante il caricamento');
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    finishProcess('error', `Errore del server: ${jqXHR.status} ${errorThrown}`);
-                }
-            });
-        };
-
-        function startSseProcessing(processId) {
-            const url = new URL(window.APP_URL + '/index.php');
-            url.searchParams.set('page', 'importa');
-            url.searchParams.set('action', 'process');
-            url.searchParams.set('id', processId);
-            eventSource = new EventSource(url.toString());
-            eventSource.addEventListener('log', e => { const data = JSON.parse(e.data); updateLog(data.status, data.message); });
-            eventSource.addEventListener('progress', e => { const data = JSON.parse(e.data); updateProgress(data.value, data.text); });
-            eventSource.addEventListener('close', e => { const data = JSON.parse(e.data); finishProcess(data.status, data.message); });
-            eventSource.onerror = () => { finishProcess('error', 'Connessione con il server interrotta.'); };
-        }
-
-        const iconMap = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle', error: 'fas fa-times-circle' };
-        function updateLog(status, message) {
-            const item = document.createElement('div');
-            item.className = `log-item status-${status}`;
-            item.innerHTML = `<i class="icon ${iconMap[status] || ''}"></i><span class="message">${message}</span>`;
-            logContainer.appendChild(item);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        function updateProgress(value, text) {
-            progressBar.style.width = `${Math.min(value, 100)}%`;
-            progressText.textContent = text;
-        }
-
-        function finishProcess(status, message) {
-            if (eventSource) { eventSource.close(); eventSource = null; }
-            updateProgress(100, "Completato");
-            updateLog(status, `<strong>${message}</strong>`);
-            progressBar.classList.remove('error', 'warning');
-            if (status === 'error') progressBar.classList.add('error');
-            if (status === 'warning') progressBar.classList.add('warning');
-            finalActions.style.display = 'block';
-        }
-    }
-});
+    .sidebar-header {
+        padding: 0.5rem 1rem;
+}
+    .sidebar-nav {
+        display: flex;
+        flex-direction: row;
+}
+    .sidebar-nav a span, .sidebar-header .logo-text, .sidebar-footer {
+        display: none;
+}
+    body.sidebar-collapsed #sidebar, #sidebar {
+        width: 100%;
+}
+    #main-content {
+        width: 100%;
+        margin-left: 0;
+}
+}
