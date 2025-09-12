@@ -1,9 +1,4 @@
 /* /public/assets/js/app.js */
-
-// --- Blocco di Codice Corretto e Allineato a index.php ---
-// Questo script è stato interamente sincronizzato con la logica frontend dell'originale
-// per garantire la perfetta replicazione del comportamento.
-
 $(document).ready(function() {
 
     // --- Config Globale (da PHP) ---
@@ -11,16 +6,16 @@ $(document).ready(function() {
     const hiddenColumns = window.hiddenColumnsData || [];
 
     // --- Funzioni di Utilità ---
-    function postAction(action, data, callback) {
+    function postAction(action, data, callback, dataType = 'json') {
         let postData = { action: action, ...data };
-        $.post(window.APP_URL + '/index.php', postData, callback || function(r) {
+        $.post(window.location.href, postData, callback || function(r) {
             if (r.success) {
-                window.location.href = window.location.href; // Ricarica per vedere le modifiche
+                location.reload(); 
             } else {
                 console.error('Azione fallita:', action, r.error);
                 alert('Si è verificato un errore: ' + (r.error || 'Dettagli non disponibili.'));
             }
-        }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
+        }, dataType).fail(function(jqXHR, textStatus, errorThrown) {
             console.error('Errore di comunicazione AJAX per azione ' + action + ':', jqXHR.responseText);
             alert('Errore di comunicazione con il server: ' + (jqXHR.responseJSON?.error || errorThrown));
         });
@@ -34,13 +29,11 @@ $(document).ready(function() {
             const n = $(this).data('column');
             if (n) w[n] = $(this).outerWidth();
         });
-        // L'originale salvava via POST ad ogni ridimensionamento, ma è inefficiente.
-        // Utilizziamo lo stesso meccanismo per la massima fedeltà, ma senza ricaricare la pagina.
-        postAction('save_column_widths', { column_widths: w }, () => {});
+        $.post(window.location.href, { column_widths: w });
     }
     function updateColumnOrder() {
-        let order = $('#dataTable thead th[data-column]').map(function() { return $(this).data('column'); }).get();
-        postAction('save_column_order', { column_order: order }, () => {});
+        let order = $('#dataTable thead tr th[data-column]').map(function() { return $(this).data('column'); }).get();
+        $.post(window.location.href, { column_order: order });
     }
 
 
@@ -50,12 +43,10 @@ $(document).ready(function() {
         body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed'));
     });
-
     $('.submenu-toggle').on('click', function(e) {
         e.preventDefault();
         $(this).parent('.has-submenu').toggleClass('open');
     });
-
     const themeToggle = $('#theme-toggle');
     function setTheme(theme) {
         if (theme === 'dark') {
@@ -80,14 +71,12 @@ $(document).ready(function() {
         setTimeout(() => { $modal.css('display', 'none'); $('.help-pop').remove(); }, 300);
     };
 
-    // Gestione chiusura modali
     $('.modal-overlay').on('click', function(e) { if (e.target === this) closeModal($(this).attr('id')); });
     $('.modal-close-btn, #editCancelBtn').on('click', function() { closeModal($(this).closest('.modal-overlay').attr('id')); });
     $('.modal-container').on('click', e => e.stopPropagation());
 
-
     // --- Gestione Tabella ---
-    if ($('#dataTable thead tr').length > 0 && typeof $.ui !== 'undefined' && typeof $.ui.sortable !== 'undefined') {
+    if (typeof $.ui !== 'undefined' && typeof $.ui.sortable !== 'undefined') {
         $('#dataTable thead tr').sortable({
             items: '> th[data-column]',
             axis: 'x',
@@ -125,9 +114,9 @@ $(document).ready(function() {
     });
     $(document).on('mousemove', function(e) { if (isResizing) { const w = startWidth + (e.pageX - startX); if (w > 30) currentTh.width(w); } })
              .on('mouseup', function() { if (isResizing) { isResizing = false; currentTh = null; $('body').css('cursor', ''); saveColumnWidths(); } });
-
+    
     $('.filter-input').on('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyFilter($(this).data('column'), $(this).val()); } });
-
+    
     function highlightHTML(html, regex) {
         return html.split(/(<[^>]+>)/g).map(part => part.startsWith('<') ? part : part.replace(regex, '<mark class="hl">$&</mark>')).join('');
     }
@@ -148,7 +137,7 @@ $(document).ready(function() {
         });
     });
     $('#clearSearch').on('click', () => { $('#globalSearch').val('').trigger('input').focus(); });
-
+    
     let currentWidthMode = 0;
     $('#toggle-col-width').on('click', function() {
         currentWidthMode = (currentWidthMode + 1) % 3; const $table = $('#dataTable');
@@ -264,18 +253,18 @@ $(document).ready(function() {
                     form.append(accordionItem);
                 }
             });
-
+            
             $('.accordion-header').on('click', function() { $(this).parent('.accordion-item').toggleClass('open'); });
             $('#editTitle').text('Modifica Concessione - ID Concessione: ' + r.idf24);
             $('#editSubtitle').text('Ultima modifica: ' + (r.last_operation_time_fmt || 'n/d'));
-        });
+        }, 'json');
     }
 
     function buildField(col) {
         const name = col.name, ui = col.ui_type, value = editOriginalData.values[name], help = FIELD_HELP[name];
         const isReadOnly = name === 'id' || name === 'geom';
         let displayLabel = help?.label || name.replace(/_/g, ' ');
-
+        
         const $field = $(`<div class="edit-field" data-name="${name}"></div>`);
         const $container = $(`<div class="edit-field-container ${isReadOnly ? 'is-readonly' : ''}"></div>`);
         const $label = $(`<label class="edit-field-label" for="edit-field-${name}">${displayLabel}</label>`);
@@ -286,7 +275,7 @@ $(document).ready(function() {
 
         let $input;
         const hasValue = value !== null && String(value).trim() !== '';
-
+        
         if (ui === 'boolean') {
             $input = $(`<select class="edit-input" id="edit-field-${name}" ${isReadOnly ? 'disabled' : ''} required><option value="" disabled ${hasValue ? '' : 'selected'}>NULL</option><option value="true">Sì</option><option value="false">No</option></select>`);
             if (value === true || String(value).toLowerCase() === 't') $input.val('true');
@@ -312,7 +301,7 @@ $(document).ready(function() {
 
             const val = $input.val();
             let originalString;
-
+            
             if (original === null) {
                 originalString = null;
             } else if (typeof original === 'boolean') {
@@ -322,7 +311,7 @@ $(document).ready(function() {
             }
 
             if (val !== originalString || (original !== null && val === '')) {
-                updates[name] = (val === "NULL") ? "" : val; // Gestisce il caso in cui il placeholder NULL viene salvato
+                updates[name] = val;
             }
         });
 
@@ -342,12 +331,11 @@ $(document).ready(function() {
             } else {
                 $('#editAlert').text(r.error || 'Errore durante il salvataggio.').show();
             }
-        });
+        }, 'json');
     }
 
     $('#editSaveContinueBtn').on('click', () => saveEdits(true));
     $('#editSaveExitBtn').on('click', () => saveEdits(false));
-
 
     // --- Gestione Help Popups ---
     function buildHelpDot(name, help) {
@@ -372,7 +360,7 @@ $(document).ready(function() {
         const dotRect = $anchor[0].getBoundingClientRect();
         let top = dotRect.bottom + 8;
         let left = dotRect.left + dotRect.width / 2;
-
+        
         $pop.css({
             position: 'fixed',
             top: `${top}px`,
@@ -389,11 +377,13 @@ $(document).ready(function() {
                 top = dotRect.top - popRect.height - 8;
             }
             if (top < m) top = m;
+            
             if (popRect.left < m) {
                 left = m; $pop.css({ transform: 'translateX(0)' });
             } else if (popRect.right > vw - m) {
                 left = vw - m; $pop.css({ transform: 'translateX(-100%)' });
             }
+            
             $pop.css({ top: `${top}px`, left: `${left}px` }).addClass('open');
             makeDraggable($pop);
         }, 10);
@@ -437,7 +427,7 @@ $(document).ready(function() {
             }
         };
         zipFileInput.onchange = handleFileSelection;
-
+        
         function handleFileSelection() {
             if (zipFileInput.files.length) {
                 fileNameDisplay.textContent = zipFileInput.files[0].name;
@@ -500,6 +490,7 @@ $(document).ready(function() {
         }
 
         const iconMap = { info: 'fas fa-info-circle', success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle', error: 'fas fa-times-circle' };
+        
         function updateLog(status, message) {
             const item = document.createElement('div');
             item.className = `log-item status-${status}`;
