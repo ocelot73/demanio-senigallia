@@ -1,5 +1,5 @@
 <?php
-// /src/controllers/import_controller.php
+// /src/controllers/importa_controller.php
 
 /**
  * Prepara i dati per la pagina di importazione.
