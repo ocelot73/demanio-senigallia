@@ -8,6 +8,9 @@
     <link rel="icon" href="https://www.comune.senigallia.an.it/wp-content/uploads/2024/07/Senigallia-Stemma.webp" type="image/webp">
     
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- CORREZIONE: Aggiunta di jQuery UI per il drag&drop delle colonne -->
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=titillium-web:400,600,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,7 +18,6 @@
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
     
     <script>
-        // Applica il tema prima del rendering per evitare flash
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.classList.add('dark-theme');
@@ -30,13 +32,12 @@
             }
         })();
 
-        // Passa le configurazioni da PHP a JavaScript
         window.APP_URL = "<?= APP_URL ?>";
         window.FIELD_HELP_DATA = <?= json_encode($FIELD_HELP ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         window.hiddenColumnsData = <?= json_encode($hidden_columns ?? [], JSON_UNESCAPED_UNICODE) ?>;
     </script>
 </head>
-<body>
+<body class="sidebar-collapsed">
 
     <?php require __DIR__ . '/../partials/sidebar.php'; ?>
 
@@ -49,13 +50,7 @@
         if (file_exists($view_path)) {
             require $view_path;
         } else {
-            // Ho corretto anche il percorso delle viste da "templates/" a "templates/views/" per coerenza
-            $view_path_fallback = __DIR__ . '/../' . ($pageConfig['view'] ?? 'concessioni') . '.php';
-            if(file_exists($view_path_fallback)) {
-                require $view_path_fallback;
-            } else {
-                 echo "<div class='card'><p>Errore: Vista non trovata: " . htmlspecialchars($pageConfig['view']) . "</p></div>";
-            }
+            echo "<div class='card'><p>Errore: Vista non trovata: " . htmlspecialchars($pageConfig['view']) . "</p></div>";
         }
         ?>
         
