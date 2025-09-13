@@ -637,10 +637,10 @@ mark.hl {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     width: 95vw;
-    /* --- [INIZIO CORREZIONE]: Aumento altezza modale e aggiunta overflow --- */
-    height: 93vh; /* Modificato da 90vh */
-    overflow: hidden; /* Aggiunto per correggere il border-radius dei figli */
+    /* --- [INIZIO CORREZIONE]: Aumento altezza totale modale --- */
+    height: calc(93vh + 30px); /* Aumentata di 30px rispetto alla base di 93vh */
     /* --- [FINE CORREZIONE] --- */
+    overflow: hidden;
     max-width: 1400px;
     display: flex;
     flex-direction: column;
@@ -651,7 +651,7 @@ mark.hl {
     transform: scale(1);
 }
 .modal-header {
-    padding: 1rem 1.5rem;
+    padding: 0.9rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
@@ -753,7 +753,7 @@ mark.hl {
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
-    padding: 1rem 1.5rem;
+    padding: 0.9rem 1.5rem;
     border-top: 1px solid var(--color-border);
     background-color: var(--color-surface);
     border-bottom-left-radius: var(--radius-lg);
@@ -804,7 +804,9 @@ html.dark-theme .badge-purple {
 #editModal .modal-container {
     max-width: 90vw;
     width: 1400px;
-    height: 98vh; /* Modificato da 95vh */
+    /* --- [INIZIO CORREZIONE]: Aumento altezza totale modale --- */
+    height: calc(98vh + 30px); /* Aumentata di 30px rispetto alla base di 98vh */
+    /* --- [FINE CORREZIONE] --- */
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
@@ -915,8 +917,10 @@ html.dark-theme .accordion-header.has-active-fields {
     padding: 0;
 }
 .edit-field .edit-input::placeholder {
-    color: var(--color-text-secondary);
-    opacity: 0.7;
+    /* --- [INIZIO CORREZIONE]: Colore placeholder per valori NULL --- */
+    color: #94a3b8; /* Grigio chiaro con buon contrasto */
+    opacity: 1; /* Assicura che il colore sia pieno */
+    /* --- [FINE CORREZIONE] --- */
 }
 .edit-field .edit-input[readonly] {
     cursor: not-allowed;
@@ -947,27 +951,20 @@ html.dark-theme .edit-field select.edit-input {
     gap: 6px;
     background-color: var(--color-bg);
     padding: 0 4px;
-    /* --- [INIZIO CORREZIONE]: Stile etichetta campo non valorizzato --- */
-    color: var(--color-text-primary); /* Modificato da grigio a nero */
-    font-weight: 400; /* Impostato su normale */
-    /* --- [FINE CORREZIONE] --- */
+    color: var(--color-text-primary);
+    font-weight: 400;
 }
 .edit-field-container.is-readonly .edit-field-label {
     background-color: var(--color-surface);
 }
-/* --- [INIZIO CORREZIONE]: Stile etichetta campo valorizzato o in focus --- */
-/* Questa regola unificata gestisce lo stile "attivo" dell'etichetta.
-   Si attiva quando l'input riceve il focus, oppure quando il suo contenitore
-   ha la classe '.has-value' (aggiunta via JS per i campi pre-valorizzati). */
 .edit-input:focus + .edit-field-label,
 .edit-field-container.has-value .edit-field-label {
     top: -10px;
     left: 10px;
     font-size: 0.8rem;
-    color: var(--color-primary); /* Colore blu (primario) */
-    font-weight: 700; /* Grassetto */
+    color: var(--color-primary);
+    font-weight: 700;
 }
-/* --- [FINE CORREZIONE] --- */
 .help-dot {
     --md-surface:#F1F3FF;
     --md-outline:#C5CAE9;
