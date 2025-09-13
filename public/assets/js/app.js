@@ -269,6 +269,8 @@ $(document).ready(function() {
         const hasValue = value !== null && String(value).trim() !== '';
         
         // --- [INIZIO CORREZIONE]: Aggiunta classe per styling condizionale ---
+        // Aggiungiamo una classe se il campo è valorizzato, che verrà usata dal CSS
+        // per applicare lo stile corretto (blu e grassetto) all'etichetta.
         if (hasValue) {
             $container.addClass('has-value');
         }

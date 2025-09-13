@@ -639,7 +639,7 @@ mark.hl {
     width: 95vw;
     /* --- [INIZIO CORREZIONE]: Aumento altezza modale e aggiunta overflow --- */
     height: 93vh; /* Modificato da 90vh */
-    overflow: hidden; /* Aggiunto per correggere il border-radius */
+    overflow: hidden; /* Aggiunto per correggere il border-radius dei figli */
     /* --- [FINE CORREZIONE] --- */
     max-width: 1400px;
     display: flex;
@@ -804,9 +804,7 @@ html.dark-theme .badge-purple {
 #editModal .modal-container {
     max-width: 90vw;
     width: 1400px;
-    /* --- [INIZIO CORREZIONE]: Aumento altezza modale modifica --- */
     height: 98vh; /* Modificato da 95vh */
-    /* --- [FINE CORREZIONE] --- */
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
@@ -958,6 +956,9 @@ html.dark-theme .edit-field select.edit-input {
     background-color: var(--color-surface);
 }
 /* --- [INIZIO CORREZIONE]: Stile etichetta campo valorizzato o in focus --- */
+/* Questa regola unificata gestisce lo stile "attivo" dell'etichetta.
+   Si attiva quando l'input riceve il focus, oppure quando il suo contenitore
+   ha la classe '.has-value' (aggiunta via JS per i campi pre-valorizzati). */
 .edit-input:focus + .edit-field-label,
 .edit-field-container.has-value .edit-field-label {
     top: -10px;
