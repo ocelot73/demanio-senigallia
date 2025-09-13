@@ -49,7 +49,6 @@ html.dark-theme {
     --color-highlight-orange: #854d0e;
     --color-highlight-green: #004d40;
     --color-zebra-stripe: #131c31;
-
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
@@ -582,20 +581,6 @@ mark.hl {
 .width-mode-narrow th[data-column*="concessionario"] {
     width: 250px;
 }
-#dataTable thead th[data-column] {
-    cursor: grab;
-}
-#dataTable thead th.ui-sortable-placeholder {
-    background: var(--color-primary-light);
-    visibility: visible !important;
-    border: 2px dashed var(--color-primary);
-}
-#dataTable thead th.ui-sortable-helper {
-    cursor: grabbing;
-    background: var(--color-surface);
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--color-border);
-}
 
 /* --- PAGINATION --- */
 .pagination {
@@ -652,7 +637,10 @@ mark.hl {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     width: 95vw;
-    height: 90vh;
+    /* --- [INIZIO CORREZIONE]: Aumento altezza modale e aggiunta overflow --- */
+    height: 93vh; /* Modificato da 90vh */
+    overflow: hidden; /* Aggiunto per correggere il border-radius */
+    /* --- [FINE CORREZIONE] --- */
     max-width: 1400px;
     display: flex;
     flex-direction: column;
@@ -816,7 +804,17 @@ html.dark-theme .badge-purple {
 #editModal .modal-container {
     max-width: 90vw;
     width: 1400px;
-    height: 95vh;
+    /* --- [INIZIO CORREZIONE]: Aumento altezza modale modifica --- */
+    height: 98vh; /* Modificato da 95vh */
+    /* --- [FINE CORREZIONE] --- */
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+html.dark-theme #editModal .modal-container {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(51, 65, 85, 0.5);
 }
 #editModal .modal-content {
     padding: 1.5rem;
@@ -944,7 +942,6 @@ html.dark-theme .edit-field select.edit-input {
     top: 16px;
     left: 14px;
     font-size: 1rem;
-    color: var(--color-text-secondary);
     pointer-events: none;
     transition: all 0.2s ease;
     display: flex;
@@ -952,17 +949,24 @@ html.dark-theme .edit-field select.edit-input {
     gap: 6px;
     background-color: var(--color-bg);
     padding: 0 4px;
+    /* --- [INIZIO CORREZIONE]: Stile etichetta campo non valorizzato --- */
+    color: var(--color-text-primary); /* Modificato da grigio a nero */
+    font-weight: 400; /* Impostato su normale */
+    /* --- [FINE CORREZIONE] --- */
 }
 .edit-field-container.is-readonly .edit-field-label {
     background-color: var(--color-surface);
 }
-.edit-input:focus + .edit-field-label, .edit-input:not([placeholder=" "]) + .edit-field-label, .edit-input:not(:placeholder-shown) + .edit-field-label, select.edit-input:valid + .edit-field-label {
+/* --- [INIZIO CORREZIONE]: Stile etichetta campo valorizzato o in focus --- */
+.edit-input:focus + .edit-field-label,
+.edit-field-container.has-value .edit-field-label {
     top: -10px;
     left: 10px;
     font-size: 0.8rem;
-    color: var(--color-primary);
-    font-weight: 700;
+    color: var(--color-primary); /* Colore blu (primario) */
+    font-weight: 700; /* Grassetto */
 }
+/* --- [FINE CORREZIONE] --- */
 .help-dot {
     --md-surface:#F1F3FF;
     --md-outline:#C5CAE9;
