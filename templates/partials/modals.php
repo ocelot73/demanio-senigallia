@@ -1,37 +1,33 @@
 <?php // /templates/partials/modals.php ?>
-<div class="modal-overlay" id="detailsModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <div>
-                <h2 id="modalTitle">Dettagli SID</h2>
-                <div id="modalSubtitle" class="modal-subtitle"></div>
-            </div>
-            <button class="modal-close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-            <nav class="modal-nav" id="modalNav"></nav>
-            <div class="modal-content" id="modalContent"></div>
+
+<!-- Modale dettaglio viste materializzate -->
+<div id="detailModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <button class="modal-close" data-close="detailModal" title="Chiudi" type="button">&times;</button>
+        <div class="modal-grid">
+            <aside class="modal-nav">
+                <ul id="detailMenu"></ul>
+            </aside>
+            <section class="modal-body">
+                <div id="detailHeader" class="detail-header"></div>
+                <div id="detailContent" class="detail-content"></div>
+            </section>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="editModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <div>
-                <h2 id="editTitle">Modifica Concessione</h2>
-                <div id="editSubtitle" class="modal-subtitle"></div>
-            </div>
-            <button class="modal-close-btn">&times;</button>
-        </div>
-        <div class="modal-content" id="editModalContent">
-            <div id="editAlert" style="display:none;"></div>
-            <form id="editForm"></form>
-        </div>
-        <div class="modal-footer">
-            <button class="btn" type="button" id="editCancelBtn">Annulla</button>
-            <button class="btn" type="button" id="editSaveContinueBtn"><i class="fas fa-save"></i> Salva e continua</button>
-            <button class="btn btn-primary" type="button" id="editSaveExitBtn"><i class="fas fa-check"></i> Salva ed esci</button>
-        </div>
+<!-- Modale modifica concessione -->
+<div id="editModal" class="modal" style="display:none;">
+    <div class="modal-content modal-xl">
+        <button class="modal-close" data-close="editModal" title="Chiudi" type="button">&times;</button>
+        <header class="modal-header">
+            <h3><i class="fa-regular fa-pen-to-square"></i> Modifica Concessione</h3>
+            <small id="editSubtitle" class="subtitle"></small>
+        </header>
+        <div id="editAccordion" class="accordion"></div>
+        <footer class="modal-footer">
+            <button id="btnSaveEdit" class="btn btn-primary" type="button"><i class="fa-solid fa-floppy-disk"></i> Salva</button>
+            <button class="btn" data-close="editModal" type="button"><i class="fa-solid fa-xmark"></i> Annulla</button>
+        </footer>
     </div>
 </div>
