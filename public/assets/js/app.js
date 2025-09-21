@@ -297,7 +297,7 @@ $(document).ready(function () {
                 $(this).closest('.help-popover').remove();
             });
 
-            $('#editModal').fadeIn(120).data('idf24', r.idf24);
+            $('#editModal.modal').fadeIn(120).data('idf24', r.idf24);
         });
     }
     $('#dataTable').on('click', '.btn-edit', function (e) {
@@ -306,7 +306,7 @@ $(document).ready(function () {
         if (idf24 != null && idf24 !== '') openEditModal(idf24);
     });
     $('#btnSaveEdit').on('click', function () {
-        const $modal = $('#editModal');
+        const $modal = $('#editModal.modal');
         const original_idf24 = $modal.data('idf24');
         const updates = {};
         $('#editAccordion [data-name]').each(function () {
@@ -320,7 +320,7 @@ $(document).ready(function () {
         postAction('save_concessione_edit', { original_idf24, updates: JSON.stringify(updates) }, function (resp) {
             if (resp && resp.success) {
                 alert('Salvato correttamente.');
-                $('#editModal').fadeOut(120);
+                $modal.fadeOut(120);
                 location.reload();
             } else {
                 alert('Errore salvataggio: ' + (resp?.error || 'n/d'));

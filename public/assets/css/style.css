@@ -277,24 +277,103 @@ mark.hl { background: #fff59d; color: inherit; padding: 0 2px; border-radius: 2p
     position: fixed; inset: 0; background: rgba(5,8,16,.45);
     display: none; z-index: 1000; padding: 24px; overflow: auto;
 }
-.modal .content {
+.modal .content,
+.modal .modal-content {
     background: var(--glass-bg); color: var(--md-sys-on-surface);
     border-radius: 16px; border: 1px solid var(--glass-border);
     margin: auto; padding: 0; max-width: 1100px; box-shadow: var(--glass-shadow);
 }
-.modal .header, .modal .footer { padding: 12px 16px; border-bottom: 1px solid var(--md-sys-outline); }
-.modal .footer { border-bottom: 0; border-top: 1px solid var(--md-sys-outline); display: flex; gap: 8px; justify-content: flex-end; }
-.modal .close { position: absolute; top: 12px; right: 12px; border: 0; background: transparent; font-size: 24px; cursor: pointer; }
+.modal .modal-content.modal-xl { max-width: 1200px; }
+.modal .header,
+.modal .footer,
+.modal-header,
+.modal-footer { padding: 12px 16px; border-bottom: 1px solid var(--md-sys-outline); }
+.modal .footer,
+.modal-footer {
+    border-bottom: 0;
+    border-top: 1px solid var(--md-sys-outline);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.modal .close,
+.modal-close { position: absolute; top: 12px; right: 12px; border: 0; background: transparent; font-size: 24px; cursor: pointer; }
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(5,8,16,.55);
+    z-index: 1000;
+}
+.modal-overlay.open { display: flex; }
+.modal-overlay .modal-container {
+    width: min(1200px, 95vw);
+    max-height: 90vh;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.modal-overlay .modal-header,
+.modal-overlay .modal-footer {
+    padding: 16px 20px;
+    background: var(--md-sys-surface);
+    border-bottom: 1px solid var(--md-sys-outline);
+}
+.modal-overlay .modal-footer {
+    border-bottom: 0;
+    border-top: 1px solid var(--md-sys-outline);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+.modal-overlay .modal-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+.modal-overlay .modal-nav {
+    width: 260px;
+    border-right: 1px solid var(--md-sys-outline);
+    padding: 16px;
+    background: var(--md-sys-surface-variant);
+    overflow-y: auto;
+}
+.modal-overlay .modal-content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+.modal-close-btn {
+    background: none;
+    border: 0;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--md-sys-on-surface-variant);
+}
+.modal-close-btn:hover { color: var(--md-sys-on-surface); }
 
 /* Accordion (generica) */
-.accordion .item { border-top: 1px solid var(--md-sys-outline); }
-.accordion .item:first-child { border-top: 0; }
-.accordion .header {
+.accordion .item,
+.accordion-item { border-top: 1px solid var(--md-sys-outline); }
+.accordion .item:first-child,
+.accordion-item:first-child { border-top: 0; }
+.accordion .header,
+.accordion-header {
   width: 100%; text-align: left; background: var(--md-sys-surface);
   border: 0; padding: 12px 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
 }
-.accordion .header.open { background: color-mix(in oklab, var(--md-sys-surface), #000 6%); }
-.accordion .panel { display: none; padding: 12px 16px; }
+.accordion .header.open,
+.accordion-header.open { background: color-mix(in oklab, var(--md-sys-surface), #000 6%); }
+.accordion .panel,
+.accordion-panel { display: none; padding: 12px 16px; }
 
 /* Form rows */
 .form-row { display: grid; gap: 6px; margin-bottom: 10px; }
