@@ -7,24 +7,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://www.comune.senigallia.an.it/wp-content/uploads/2024/07/Senigallia-Stemma.webp" type="image/webp">
 
+    <!-- jQuery + jQuery UI (fedeli all'originale) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    
+
+    <!-- Font & Icon -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=titillium-web:400,600,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Stili -->
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
 
     <script>
-         // Applica il tema scuro prima del rendering per evitare flash
+        // Applica il tema scuro prima del rendering (identico al comportamento originale)
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.classList.add('dark-theme');
             }
         })();
 
-        // Passa le variabili PHP a JavaScript
+        // Variabili globali per JS
         window.APP_URL = "<?= APP_URL ?>";
         window.FIELD_HELP_DATA = <?= json_encode($GLOBALS['FIELD_HELP'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         window.hiddenColumnsData = <?= json_encode($hidden_columns ?? [], JSON_UNESCAPED_UNICODE) ?>;
@@ -32,7 +35,7 @@
 </head>
 <body>
     <script>
-        // Logica per la gestione della sidebar, identica all'originale.
+        // Stato sidebar (ripristino identico all'originale)
         (function() {
             const isFirstLoad = <?= json_encode($_SESSION['first_load_after_login'] ?? false) ?>;
             const sidebarState = localStorage.getItem('sidebarCollapsed');
@@ -40,11 +43,11 @@
             if (isFirstLoad) {
                 document.body.classList.remove('sidebar-collapsed');
                 localStorage.setItem('sidebarCollapsed', 'false');
-                <?php if(isset($_SESSION['first_load_after_login'])) unset($_SESSION['first_load_after_login']); ?>
+                <?php if (isset($_SESSION['first_load_after_login'])) unset($_SESSION['first_load_after_login']); ?>
             } else {
                 if (sidebarState === 'true') {
                     document.body.classList.add('sidebar-collapsed');
-                } else if (sidebarState === null) { // Default a chiuso se non impostato
+                } else if (sidebarState === null) { // default chiuso se non impostato (come originale)
                     document.body.classList.add('sidebar-collapsed');
                 }
             }
@@ -54,18 +57,18 @@
     <?php require __DIR__ . '/../partials/sidebar.php'; ?>
 
     <main id="main-content">
-
         <?php require __DIR__ . '/../partials/header.php'; ?>
 
         <?php
         $view_path = __DIR__ . '/../' . ($pageConfig['view'] ?? 'concessioni') . '.php';
         if (file_exists($view_path)) {
+            // Espone i dati del controller alla vista
+            extract($data);
             require $view_path;
         } else {
             echo "<div class='card'><p>Errore: Vista non trovata nel percorso: " . htmlspecialchars($view_path) . "</p></div>";
         }
         ?>
-
     </main>
 
     <?php require __DIR__ . '/../partials/modals.php'; ?>
@@ -73,4 +76,3 @@
     <script src="<?= APP_URL ?>/assets/js/app.js"></script>
 </body>
 </html>
-

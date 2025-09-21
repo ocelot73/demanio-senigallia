@@ -35,15 +35,3 @@
         </div>
     </div>
 </div>
-
-<div class="modal-overlay" id="eventDetailsModal">
-     <div class="modal-container" style="max-width: 600px; height: auto;">
-        <div class="modal-header">
-            <h2 id="eventDetailsTitle">Dettagli Scadenza</h2>
-            <button class="modal-close-btn">&times;</button>
-        </div>
-        <div class="modal-content" id="eventDetailsContent">
-            <!-- Contenuto popolato da JS -->
-        </div>
-    </div>
-</div>

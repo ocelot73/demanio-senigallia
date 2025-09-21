@@ -1,75 +1,89 @@
 <?php
-// /src/controllers/concessioni_controller.php
+// =====================================================================
+// FILE: /src/controllers/concessioni_controller.php (COMPLETAMENTE RISCRITTO)
+// Gestisce la logica per le viste tabellari, inclusi paginazione,
+// ordinamento e filtri, fornendo tutti i dati necessari alla vista.
+// =====================================================================
+
+// Include il modello corretto e più avanzato
 require_once __DIR__ . '/../models/concessione.php';
 
 /**
- * Prepara i dati per la visualizzazione delle tabelle delle concessioni.
- * Logica allineata a index.php per gestire correttamente lo stato della sessione,
- * la paginazione, i filtri e l'ordinamento.
+ * Prepara i dati per le viste tabellari delle concessioni.
+ *
+ * @param array &$data Array passato per riferimento per contenere i dati per la vista.
+ * @param array &$pageConfig La configurazione della pagina corrente da pages.php.
  */
-function concessioni_controller_data($conn, $pageConfig) {
-    $table = $pageConfig['table'] ?? 'concessioni_unione_v';
-    $data_to_return = [];
-
-    // Gestione anno per la vista 'calcolo_canoni' (dall'originale)
-    if ($pageConfig['label'] === 'Calcolo Canoni') {
-        $selected_year = $_GET['anno'] ?? $_SESSION['selected_year'] ?? date('Y');
-        $_SESSION['selected_year'] = $selected_year;
-        $data_to_return['selected_year'] = $selected_year; // Passa l'anno alla vista
-        $escaped_year = pg_escape_string($conn, (string)$selected_year);
-        @pg_query($conn, "SELECT set_config('demanio.anno', '$escaped_year', false)");
-    }
-
-    $full_view = $_SESSION['full_view'] ?? ($GLOBALS['currentPageKey'] === 'concessioni');
-    $filters = $_SESSION['column_filters'] ?? [];
-    $page = max(1, (int)($_GET['page'] ?? 1)); // CORREZIONE: Usa 'page' invece di 'p'
-
-    $all_columns = get_table_columns($conn, $table);
-    // CORREZIONE: Logica di fallback per l'ordinamento identica all'originale
-    $order_column = $_GET['order'] ?? (in_array('denominazione ditta concessionario', $all_columns) ? 'denominazione ditta concessionario' : ($all_columns[0] ?? ''));
-    $order_direction = $_GET['dir'] ?? 'ASC';
-
-    if (isset($_SESSION['column_order'])) {
-        $saved_order = $_SESSION['column_order'];
-        $columns = array_values(array_intersect($saved_order, $all_columns));
-        foreach ($all_columns as $col) {
-            if (!in_array($col, $columns)) {
-                $columns[] = $col;
-            }
+function concessioni_controller_data(&$data, &$pageConfig) {
+    $conn = null;
+    try {
+        // --- 1. Connessione al DB ---
+        $conn = get_db_connection();
+        if (!$conn) {
+            throw new Exception("Impossibile connettersi al database.");
         }
-    } else {
-        $columns = $all_columns;
+
+        // --- 2. Definizione dello Stato della Vista (Paginazione, Ordinamento, Filtri) ---
+        $table = $pageConfig['table'] ?? 'concessioni_unione_v';
+        
+        // Se non è definita, la prendo dalla config.php.example per compatibilità
+        if (!defined('RECORDS_PER_PAGE')) {
+            define('RECORDS_PER_PAGE', 35);
+        }
+        
+        $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        if ($current_page < 1) $current_page = 1;
+
+        // Gestione ordinamento
+        $default_order = ['column' => 'denominazione_ditta_concessionario', 'direction' => 'ASC'];
+        $order_column = $_GET['order'] ?? $_SESSION['order_column'] ?? $default_order['column'];
+        $order_direction = $_GET['dir'] ?? $_SESSION['order_direction'] ?? $default_order['direction'];
+        $_SESSION['order_column'] = $order_column;
+        $_SESSION['order_direction'] = $order_direction;
+
+        // Gestione filtri
+        $filters = $_SESSION['column_filters'] ?? [];
+        $filters_active = !empty(array_filter($filters));
+
+        // Determina se mostrare la vista completa (senza paginazione)
+        $full_view = isset($_GET['export_csv']) || ($pageConfig['table'] !== 'concessioni_unione_v');
+
+        // --- 3. Recupero dei Dati tramite il Modello Avanzato ---
+        $all_columns = get_table_columns($conn, $table);
+        $total_records = get_records_count($conn, $table, $filters, $all_columns);
+
+        if ($full_view) {
+            $records = get_all_records($conn, $table, $order_column, $order_direction, $filters, $all_columns);
+            $total_pages = 1;
+            $current_page = 1;
+        } else {
+            $records = get_paginated_records($conn, $table, $current_page, $order_column, $order_direction, $filters, $all_columns);
+            $total_pages = ceil($total_records / RECORDS_PER_PAGE);
+        }
+
+        // --- 4. Preparazione dei Dati da passare alla Vista (`$data` array) ---
+        // Questi sono tutti i dati che il template 'concessioni.php' si aspetta.
+        $data['records'] = $records;
+        $data['columns'] = $all_columns;
+        $data['visible_columns'] = array_diff($all_columns, $_SESSION['hidden_columns'] ?? []);
+        $data['hidden_columns'] = $_SESSION['hidden_columns'] ?? [];
+        $data['filters'] = $filters;
+        $data['filters_active'] = $filters_active;
+        $data['order_column'] = $order_column;
+        $data['order_direction'] = $order_direction;
+        $data['total_records'] = $total_records;
+        $data['current_page'] = $current_page;
+        $data['total_pages'] = $total_pages;
+        $data['full_view'] = $full_view;
+
+    } catch (Exception $e) {
+        // In caso di errore, lo salva per mostrarlo nella vista
+        $data['error'] = "Si è verificato un errore: " . $e->getMessage();
+        error_log($e->getMessage());
+    } finally {
+        // --- 5. Chiusura Connessione ---
+        if ($conn) {
+            pg_close($conn);
+        }
     }
-
-    if (empty($columns) || !in_array($order_column, $columns)) {
-        $order_column = $columns[0] ?? '';
-    }
-
-    $total_records = get_records_count($conn, $table, $filters, $all_columns);
-
-    if ($full_view) {
-        $records = get_all_records($conn, $table, $order_column, $order_direction, $filters, $all_columns);
-        $total_pages = 1;
-        $page = 1;
-    } else {
-        $records = get_paginated_records($conn, $table, $page, $order_column, $order_direction, $filters, $all_columns);
-        $total_pages = ($total_records > 0) ? (int)ceil($total_records / (int)RECORDS_PER_PAGE) : 1;
-    }
-
-    // Unisce i dati comuni con quelli specifici (es. selected_year)
-    return array_merge($data_to_return, [
-        'records'         => $records,
-        'columns'         => $columns,
-        'all_columns'     => $all_columns,
-        'visible_columns' => array_values(array_diff($columns, $_SESSION['hidden_columns'] ?? [])),
-        'hidden_columns'  => $_SESSION['hidden_columns'] ?? [],
-        'total_pages'     => $total_pages,
-        'current_page'    => $page,
-        'order_column'    => $order_column,
-        'order_direction' => $order_direction,
-        'filters'         => $filters,
-        'full_view'       => $full_view,
-        'filters_active'  => !empty($filters),
-        'total_records'   => $total_records
-    ]);
 }
