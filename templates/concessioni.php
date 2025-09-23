@@ -32,13 +32,12 @@
         <thead>
             <tr>
                 <?php if (in_array('idf24', $columns)): ?>
-                    <th class="action-column-header" style="width:80px; text-align:center; min-width: 80px;">Azioni</th>
+                    <th class="action-column-header" style="width:110px; text-align:center; min-width: 110px;">Azioni</th>
                 <?php endif; ?>
                 <?php foreach ($columns as $col):
                   if (in_array($col, $hidden_columns)) continue;
                   $is_sorted = ($col == $order_column);
                   $next_dir = $is_sorted && strtoupper($order_direction) === 'ASC' ? 'DESC' : 'ASC';
-                  
                   // Logica per le nuove icone
                   $sort_icon_class = 'fa-sort'; // Icona di default (non ordinato)
                   if ($is_sorted) {
@@ -52,15 +51,15 @@
                         <a href="<?= htmlspecialchars(build_current_url(['order' => $col, 'dir' => $next_dir])) ?>" class="sort-btn <?= $is_sorted ? 'active' : '' ?>" title="Ordina">
                             <i class="fas <?= $sort_icon_class ?>"></i>
                         </a>
-                        <button class="toggle-btn" onclick="toggleColumn('<?= htmlspecialchars($col) ?>')" title="Nascondi">
+                         <button class="toggle-btn" onclick="toggleColumn('<?= htmlspecialchars($col) ?>')" title="Nascondi">
                             <i class="fas fa-eye-slash"></i>
                         </button>
-                        </div>
+                     </div>
                   </div>
                   <input type="text" class="filter-input" data-column="<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars($filters[$col] ?? '') ?>" placeholder="Filtra..." title="Premi Invio per filtrare">
                   <div class="resizer"></div>
                 </th>
-                <?php endforeach; ?>
+                 <?php endforeach; ?>
             </tr>
         </thead>
         <tbody>
@@ -75,11 +74,14 @@
                 <?php if (in_array('idf24', $columns)): ?>
                   <td style="text-align:center;">
                     <?php if ($idf24_value): ?>
-                      <span class="row-actions">
+                     <span class="row-actions">
+                        <a href="index.php?page=concessione_dettaglio&idf24=<?= htmlspecialchars($idf24_value) ?>" class="action-btn-link" title="Fascicolo e Contabilità">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </a>
                         <a href="#" class="details-btn" title="Visualizza dati SID"><i class="fas fa-search"></i></a>
                         <a href="#" class="edit-btn" title="Modifica dati concessione"><i class="fas fa-pencil-alt"></i></a>
                       </span>
-                    <?php endif; ?>
+                     <?php endif; ?>
                   </td>
                 <?php endif; ?>
                 <?php foreach ($columns as $col):

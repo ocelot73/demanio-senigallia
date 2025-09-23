@@ -1,19 +1,8 @@
 <?php
 // /config/pages.php
-
-/**
- * ==========================================================
- * Definizione Pagine e Viste dell'Applicazione
- * ==========================================================
- * Questo file definisce la struttura di navigazione e le proprietà di ogni pagina.
- * Le configurazioni sono state allineate a quelle presenti in `index.php` per garantire
- * la coerenza funzionale, specialmente per la formattazione dei canoni e l'evidenziazione
- * delle colonne. È stata rimossa la voce 'scadenzario' non presente nell'originale.
- */
-
 $PAGES = [
     'concessioni' => [
-        'label' => 'Concessioni',
+        'label' => 'Elenco Concessioni',
         'view' => 'concessioni',
         'controller' => 'concessioni_controller.php',
         'table' => 'concessioni_unione_v',
@@ -22,13 +11,20 @@ $PAGES = [
         'title' => 'Tabella concessioni demaniali marittime - SID',
         'icon' => 'fas fa-umbrella-beach'
     ],
+    'scadenzario' => [
+        'label' => 'Scadenzario Solleciti',
+        'view' => 'scadenzario',
+        'controller' => 'scadenzario_controller.php',
+        'title' => 'Calendario Scadenze Solleciti',
+        'icon' => 'fas fa-calendar-alt'
+    ],
     'stampa_unione' => [
         'label' => 'Stampa Unione',
         'view' => 'concessioni',
         'controller' => 'concessioni_controller.php',
         'table' => 'stampa_unione_v',
         'highlight_columns' => [],
-        'format_canone_2025' => true, // Mantenuto per coerenza, anche se la colonna potrebbe non esistere
+        'format_canone_2025' => true,
         'title' => 'Tabella per stampa unione Microsoft Word',
         'icon' => 'fas fa-file-word'
     ],
@@ -78,21 +74,28 @@ $PAGES = [
         'title' => 'Modifica la tabella delle concessioni in una nuova scheda',
         'icon'  => 'fas fa-edit'
     ],
+    'sync_manuale' => [
+        'label' => 'Sincronizza Pagamenti',
+        'view' => 'sync_manuale',
+        'controller' => 'sync_manuale_controller.php',
+        'title' => 'Sincronizzazione Manuale Dati Contabili',
+        'icon' => 'fas fa-sync-alt'
+    ],
     'importa' => [
         'label' => 'Importa Dati SID',
         'view' => 'importa',
         'controller' => 'importa_controller.php',
-        'title' => 'Importazione Dati Demaniali (SID)',
+        'title' => 'Importazione Dati SID',
         'icon' => 'fas fa-upload'
-    ]
+    ],
+    'concessione_dettaglio' => [
+        'view' => 'concessione_dettaglio',
+        'controller' => 'concessione_dettaglio_controller.php',
+        'title' => 'Fascicolo Concessione',
+        'hidden_from_menu' => true
+    ],
 ];
 
-/**
- * ==========================================================
- * Definizione Gruppi di Menu
- * ==========================================================
- * Raggruppa le pagine correlate sotto una singola voce di menu espandibile.
- */
 $MENU_GROUPS = [
     'Canoni' => [
         'icon' => 'fas fa-file-invoice-dollar',
@@ -105,3 +108,4 @@ $MENU_GROUPS = [
         ]
     ]
 ];
+?>

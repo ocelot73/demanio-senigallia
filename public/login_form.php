@@ -1,4 +1,12 @@
-<?php // /templates/login.php ?>
+<?php
+// /public/login_form.php
+session_start();
+require_once __DIR__ . '/../config/config.php';
+if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
+    header('Location: index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -22,7 +30,6 @@
         .btn-login { width: 100%; padding: 16px; background: var(--primary-color); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; font-family: var(--font-family); font-weight: 700; transition: all 0.2s ease; }
         .btn-login:hover { background: var(--primary-color-dark); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
         .error-message { color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; border: 1px solid #fecaca; }
-
         html.dark-theme { --primary-color: #5fa5ff; --primary-color-dark: #3b82f6; }
         html.dark-theme body { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
         html.dark-theme .login-card { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(51, 65, 85, 0.5); }
@@ -46,11 +53,10 @@
         <img src="https://www.comune.senigallia.an.it/wp-content/uploads/2024/07/Senigallia-Stemma.webp" alt="Logo Comune di Senigallia" class="login-logo">
         <h1>Accesso Riservato</h1>
         <p>Gestione Concessioni Demaniali</p>
-        <?php if (!empty($login_error)): ?>
-            <div class="error-message"><?= htmlspecialchars($login_error) ?></div>
+        <?php if (isset($_GET['error'])): ?>
+            <div class="error-message"><?= htmlspecialchars($_GET['error']) ?></div>
         <?php endif; ?>
-        <form method="POST" action="<?= APP_URL ?>/index.php">
-            <input type="hidden" name="login" value="1">
+        <form method="POST" action="login_logic.php">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autocomplete="username">
