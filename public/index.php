@@ -134,10 +134,43 @@ if (isset($_GET['action']) && $_GET['action'] === 'process' && isset($_GET['id']
 }
 
 // --- Routing e Caricamento Pagina ---
-$_SESSION['current_page_key'] = $_GET['page'] ?? 'concessioni';
+// Imposta la pagina corrente (default: concessioni)
+$requested_page = $_GET['page'] ?? 'concessioni';
+
+// Gestione reset vista completa (per確保 che la home mostri sempre i dati)
+if (isset($_GET['reset_view'])) {
+    unset($_SESSION['column_filters']);
+    unset($_SESSION['order_column']);
+    unset($_SESSION['order_direction']);
+    unset($_SESSION['hidden_columns']);
+}
+
+// Inizializzazione sessione per la prima visita - assicura che la home sia compilata con dati
+if (!isset($_SESSION['initialized']) || $_SESSION['initialized'] !== true) {
+    $_SESSION['initialized'] = true;
+    $_SESSION['current_page_key'] = 'concessioni';
+    // Assicura che le colonne siano visibili di default
+    if (!isset($_SESSION['hidden_columns'])) {
+        $_SESSION['hidden_columns'] = [];
+    }
+    // Assicura ordinamento di default
+    if (!isset($_SESSION['order_column'])) {
+        $_SESSION['order_column'] = 'denominazione_ditta_concessionario';
+        $_SESSION['order_direction'] = 'ASC';
+    }
+    // Assicura filtri vuoti di default
+    if (!isset($_SESSION['column_filters'])) {
+        $_SESSION['column_filters'] = [];
+    }
+} else {
+    $_SESSION['current_page_key'] = $requested_page;
+}
+
+// Validazione pagina richiesta
 if (!array_key_exists($_SESSION['current_page_key'], $PAGES)) {
     $_SESSION['current_page_key'] = 'concessioni';
 }
+
 $pageConfig = $PAGES[$_SESSION['current_page_key']];
 
 $data = [];

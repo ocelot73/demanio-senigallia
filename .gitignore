@@ -1,9 +1,18 @@
-# Ignora le credenziali di configurazione
-config/config.php
+```
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
-# Ignora le dipendenze di Composer (se verranno usate in futuro)
-/vendor
+# Environment
+.env
+.env.local
+.env.*
 
-# Ignora i file di sistema
-.DS_Store
-Thumbs.db
+# Editors
+.vscode/
+.idea/
+
+# Original rules preserved
+*.log
+```
